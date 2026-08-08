@@ -149,9 +149,15 @@ export default function App() {
             const isCapture = isPossibleMove && cell !== ".";
             const pieceUrl = getPieceImageUrl(cell);
 
-            const isDisable =
-              (isDark && cell !== cell.toLowerCase()) ||
-              (!isDark && cell !== cell.toUpperCase());
+            const cursorType =
+              cell === "."
+                ? "default"
+                : (turn === "BLACK" && cell !== cell.toLowerCase()) ||
+                    (turn === "WHITE" &&
+                      cell !== "." &&
+                      cell !== cell.toUpperCase())
+                  ? "not-allowed"
+                  : "pointer";
 
             return (
               <div
@@ -167,7 +173,7 @@ export default function App() {
                       : theme.lightSquare,
                   display: "flex",
                   alignItems: "center",
-                  cursor: `${isDisable ? "not-allowed" : "pointer"}`,
+                  cursor: cursorType,
                   justifyContent: "center",
                   userSelect: "none",
                   position: "relative",
