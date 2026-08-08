@@ -6,23 +6,7 @@ import {
 } from "./types/chess";
 import { THEMES, type BoardTheme } from "./types/themes";
 import { getPieceImageUrl } from "./utils/pieces";
-
-// // Mapping string pieces to unicode characters
-// const PIECE_SYMBOLS: Record<string, string> = {
-//   r: "♜",
-//   n: "♞",
-//   b: "♝",
-//   q: "♛",
-//   k: "♚",
-//   p: "♟",
-//   R: "♖",
-//   N: "♘",
-//   B: "♗",
-//   Q: "♕",
-//   K: "♔",
-//   P: "♙",
-//   ".": "",
-// };
+import { getPossibleMoves } from "./utils/chess-rules";
 
 export default function App() {
   const [board, setBoard] = useState<string[][]>(
@@ -30,8 +14,8 @@ export default function App() {
   );
   const [turn, setTurn] = useState<"WHITE" | "BLACK">("WHITE");
   const [selected, setSelected] = useState<Position | null>(null);
-
   const [theme, setTheme] = useState<BoardTheme>(THEMES.greenLichess);
+  const [possibleMoves, setPossibleMoves] = useState<Position[]>([]);
 
   // Explicitly type the WebSocket ref
   const ws = useRef<WebSocket | null>(null);
@@ -46,6 +30,9 @@ export default function App() {
         const data: BoardResponse = JSON.parse(event.data);
         setBoard(data.board);
         setTurn(data.turn);
+        // Reset the selection
+        setSelected(null);
+        setPossibleMoves([]);
       } catch (err) {
         console.error("Failed to parse WebSocket message:", err);
       }
@@ -62,13 +49,12 @@ export default function App() {
   }, []);
 
   const handleSquareClick = (row: number, col: number): void => {
-    if (!selected) {
-      // First click: Select piece if the square is not empty
-      if (board[row][col] !== ".") {
-        setSelected({ row, col });
-      }
-    } else {
-      // Second click: Send move payload to Go backend
+    // If clicking a square that is in possibleMoves, execute the move
+    const isValidTarget = possibleMoves.some(
+      (m) => m.row === row && m.col === col,
+    );
+
+    if (selected && isValidTarget) {
       const movePayload: MoveMessage = {
         from: selected,
         to: { row, col },
@@ -78,9 +64,34 @@ export default function App() {
         ws.current.send(JSON.stringify(movePayload));
       }
 
-      setSelected(null); // Reset selection
+      setSelected(null);
+      setPossibleMoves([]);
+      return;
     }
+
+    // Otherwise, check if clicking a valid owned piece to select it
+    const clickedPiece = board[row][col];
+    if (clickedPiece !== ".") {
+      const isWhitePiece = clickedPiece === clickedPiece.toUpperCase();
+      if (
+        (turn === "WHITE" && isWhitePiece) ||
+        (turn === "BLACK" && !isWhitePiece)
+      ) {
+        const pos = { row, col };
+        setSelected(pos);
+        // Calculate possible moves locally
+        const moves = getPossibleMoves(board, pos, turn);
+        setPossibleMoves(moves);
+        return;
+      }
+    }
+
+    // Deselect if clicking an empty/invalid square
+    setSelected(null);
+    setPossibleMoves([]);
   };
+
+  const resetBoard = () => {};
 
   return (
     <div
@@ -115,28 +126,40 @@ export default function App() {
         </span>
       </h3>
 
+      {/* Grid Board */}
+
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(8, 60px)",
-          gridTemplateRows: "repeat(8, 60px)",
-          border: "3px solid #333",
+          gridTemplateColumns: "repeat(8, 64px)",
+          gridTemplateRows: "repeat(8, 64px)",
+          border: "4px solid #222",
+          borderRadius: "4px",
+          overflow: "hidden",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
         }}
       >
         {board.map((row, rIdx) =>
           row.map((cell, cIdx) => {
             const isDark = (rIdx + cIdx) % 2 === 1;
             const isSelected = selected?.row === rIdx && selected?.col === cIdx;
-
+            const isPossibleMove = possibleMoves.some(
+              (m) => m.row === rIdx && m.col === cIdx,
+            );
+            const isCapture = isPossibleMove && cell !== ".";
             const pieceUrl = getPieceImageUrl(cell);
+
+            const isDisable =
+              (isDark && cell !== cell.toLowerCase()) ||
+              (!isDark && cell !== cell.toUpperCase());
 
             return (
               <div
                 key={`${rIdx}-${cIdx}`}
                 onClick={() => handleSquareClick(rIdx, cIdx)}
                 style={{
-                  width: "60px",
-                  height: "60px",
+                  width: "64px",
+                  height: "64px",
                   backgroundColor: isSelected
                     ? theme.selectedSquare
                     : isDark
@@ -144,12 +167,13 @@ export default function App() {
                       : theme.lightSquare,
                   display: "flex",
                   alignItems: "center",
+                  cursor: `${isDisable ? "not-allowed" : "pointer"}`,
                   justifyContent: "center",
-                  fontSize: "36px",
-                  cursor: "pointer",
                   userSelect: "none",
+                  position: "relative",
                 }}
               >
+                {/* Piece Image */}
                 {pieceUrl && (
                   <img
                     src={pieceUrl}
@@ -158,6 +182,38 @@ export default function App() {
                       width: "85%",
                       height: "85%",
                       pointerEvents: "none",
+                      zIndex: 1,
+                    }}
+                  />
+                )}
+
+                {/* Move Indicator: Small Dot for empty square */}
+                {isPossibleMove && !isCapture && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      width: "20px",
+                      height: "20px",
+                      borderRadius: "50%",
+                      backgroundColor: "rgba(0, 0, 0, 0.25)",
+                      pointerEvents: "none",
+                      zIndex: 2,
+                    }}
+                  />
+                )}
+
+                {/* Capture Indicator: Hollow Circle around target piece */}
+                {isCapture && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      width: "54px",
+                      height: "54px",
+                      borderRadius: "50%",
+                      border: "5px solid rgba(0, 0, 0, 0.25)",
+                      boxSizing: "border-box",
+                      pointerEvents: "none",
+                      zIndex: 2,
                     }}
                   />
                 )}
@@ -165,6 +221,25 @@ export default function App() {
             );
           }),
         )}
+      </div>
+      <div
+        style={{
+          padding: "8px 16px",
+        }}
+      >
+        <button
+          onClick={resetBoard}
+          style={{
+            backgroundColor: "red",
+            outline: "none",
+            color: "white",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            fontSize: "24px",
+          }}
+        >
+          Reset
+        </button>
       </div>
       <p>Click a piece, then click a target square to execute a move!</p>
     </div>
