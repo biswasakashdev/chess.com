@@ -18,35 +18,16 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// JSON Payload structures
-type Position struct {
-	Row int `json:"row"`
-	Col int `json:"col"`
-}
-
-type MoveMessage struct {
-	From Position `json:"from"`
-	To   Position `json:"to"`
-}
-
-type BoardResponse struct {
-	Board [8][8]string `json:"board"`
-	Turn  string       `json:"turn"`
-}
-
 // Simple Hub to manage connected WebSockets
 type Server struct {
 	clients map[*websocket.Conn]bool
 	mu      sync.Mutex
-	// Embed your existing Game logic here!
-	board [8][8]string
-	turn  string
+	game    *game.Game
 }
 
 func NewServer() *Server {
 	s := &Server{
 		clients: make(map[*websocket.Conn]bool),
-		turn:    "WHITE",
 	}
 	s.initSampleBoard()
 	return s
@@ -54,16 +35,7 @@ func NewServer() *Server {
 
 // Initial dummy setup using unicode symbols for quick visual testing
 func (s *Server) initSampleBoard() {
-	s.board = [8][8]string{
-		{"r", "n", "b", "q", "k", "b", "n", "r"},
-		{"p", "p", "p", "p", "p", "p", "p", "p"},
-		{".", ".", ".", ".", ".", ".", ".", "."},
-		{".", ".", ".", ".", ".", ".", ".", "."},
-		{".", ".", ".", ".", ".", ".", ".", "."},
-		{".", ".", ".", ".", ".", ".", ".", "."},
-		{"P", "P", "P", "P", "P", "P", "P", "P"},
-		{"R", "N", "B", "Q", "K", "B", "N", "R"},
-	}
+	s.game = game.NewGame()
 }
 
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
@@ -91,20 +63,10 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		var move MoveMessage
+		var move game.Move
 		if err := json.Unmarshal(msg, &move); err == nil {
 			s.mu.Lock()
-			// Execute simple move (Swap empty square)
-			piece := s.board[move.From.Row][move.From.Col]
-			s.board[move.From.Row][move.From.Col] = "."
-			s.board[move.To.Row][move.To.Col] = piece
-
-			// Switch turns
-			if s.turn == "WHITE" {
-				s.turn = "BLACK"
-			} else {
-				s.turn = "WHITE"
-			}
+			s.game.MakeMove(move)
 			s.mu.Unlock()
 
 			// Send updated board to all clients
@@ -117,7 +79,7 @@ func (s *Server) broadcastState() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	resp := BoardResponse{Board: s.board, Turn: s.turn}
+	resp := game.BoardResponse{Board: s.game.Board.ToBoardRes(), Turn: s.game.Turn.String()}
 	data, _ := json.Marshal(resp)
 
 	for client := range s.clients {
@@ -126,23 +88,6 @@ func (s *Server) broadcastState() {
 }
 
 func main() {
-
-	newGame := game.NewGame()
-
-	game.PrintGame(newGame)
-
-	newGame.MakeMove(game.Move{
-		From: game.Position{
-			Row: 6,
-			Col: 2,
-		},
-		To: game.Position{
-			Row: 4,
-			Col: 2,
-		},
-	})
-
-	game.PrintGame(newGame)
 
 	// Server
 

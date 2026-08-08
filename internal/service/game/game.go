@@ -2,15 +2,23 @@ package game
 
 import "fmt"
 
+// JSON Payload structures
 type Position struct {
-	Row int // 0 to 7
-	Col int // 0 to 7
+	Row int `json:"row"`
+	Col int `json:"col"`
 }
 
 type Move struct {
-	From Position
-	To   Position
+	From Position `json:"from"`
+	To   Position `json:"to"`
 }
+
+type BoardResponse struct {
+	Board [8][8]string `json:"board"`
+	Turn  string       `json:"turn"`
+}
+
+// Geme session
 
 type Game struct {
 	Board     Board

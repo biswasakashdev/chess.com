@@ -16,6 +16,14 @@ const (
 
 type Color int
 
+func (cl Color) String() string {
+	if cl == Black {
+		return "BLACK"
+	}
+
+	return "WHITE"
+}
+
 const (
 	Nothing Color = iota
 	Black
@@ -27,36 +35,31 @@ type Piece struct {
 	Color Color
 }
 
-func (pt PieceType) String() string {
-	return []string{".", "R", "N", "B", "K", "Q", "P"}[pt]
-}
-
 func (p Piece) String() string {
 
 	// When the color black then this execute
 	if p.Color == Black {
 		return []string{".", "r", "n", "b", "k", "q", "p"}[p.Type]
 	}
-	// Other wise call the above function.
-	return p.Type.String()
+
+	return []string{".", "R", "N", "B", "K", "Q", "P"}[p.Type]
 }
 
-type Board [][]Piece
+type Board [8][8]Piece
 
 func newBoard() Board {
 
-	var grid [][]Piece = make([][]Piece, Size)
+	var grid Board
 
-	for i := range grid {
-		curr := make([]Piece, Size)
-		// Initialize all the blocks with Empty Piece(No color and No piece).
-		for j := range curr {
-			curr[j] = Piece{
-				Type:  None,
-				Color: Nothing,
-			}
+	defaultPiece := Piece{
+		Color: Nothing,
+		Type:  None,
+	}
+
+	for row := range grid {
+		for col := range grid[row] {
+			grid[row][col] = defaultPiece
 		}
-		grid[i] = curr
 	}
 
 	// Set rooks
@@ -105,4 +108,18 @@ func newBoard() Board {
 
 	return grid
 
+}
+
+// Create a res
+
+func (b Board) ToBoardRes() [8][8]string {
+
+	var board [8][8]string
+	for row := range b {
+		for col := range board[row] {
+			board[row][col] = b[row][col].String()
+		}
+	}
+
+	return board
 }
