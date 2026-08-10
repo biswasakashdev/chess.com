@@ -1,99 +1,51 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"sync"
 
-	"github.com/biswasakashdev/chess.com/internal/service/game"
-	"github.com/gorilla/websocket"
+	"github.com/biswasakashdev/chess.com/internal/auth"
+	"github.com/biswasakashdev/chess.com/internal/database"
+	"github.com/biswasakashdev/chess.com/internal/game"
+	"github.com/biswasakashdev/chess.com/internal/users"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
-
-// Configure Gorilla Upgrader with CORS enabled for Vite (localhost:5173)
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow React app to connect
-	},
-}
-
-// Simple Hub to manage connected WebSockets
-type Server struct {
-	clients map[*websocket.Conn]bool
-	mu      sync.Mutex
-	game    *game.Game
-}
-
-func NewServer() *Server {
-	s := &Server{
-		clients: make(map[*websocket.Conn]bool),
-	}
-	s.initSampleBoard()
-	return s
-}
-
-// Initial dummy setup using unicode symbols for quick visual testing
-func (s *Server) initSampleBoard() {
-	s.game = game.NewGame()
-}
-
-func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Upgrade error:", err)
-		return
-	}
-	defer conn.Close()
-
-	s.mu.Lock()
-	s.clients[conn] = true
-	s.mu.Unlock()
-
-	// Send current state immediately on connect
-	s.broadcastState()
-
-	// Listen for incoming move commands from React
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			s.mu.Lock()
-			delete(s.clients, conn)
-			s.mu.Unlock()
-			break
-		}
-
-		var move game.Move
-		if err := json.Unmarshal(msg, &move); err == nil {
-			s.mu.Lock()
-			s.game.MakeMove(move)
-			s.mu.Unlock()
-
-			// Send updated board to all clients
-			s.broadcastState()
-		}
-	}
-}
-
-func (s *Server) broadcastState() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	resp := game.BoardResponse{Board: s.game.Board.ToBoardRes(), Turn: s.game.Turn.String()}
-	data, _ := json.Marshal(resp)
-
-	for client := range s.clients {
-		client.WriteMessage(websocket.TextMessage, data)
-	}
-}
 
 func main() {
 
-	// Server
+	conn := database.Connect()
 
-	server := NewServer()
-	http.HandleFunc("/ws", server.handleWS)
+	router := chi.NewRouter()
+
+	// Logger middleware.
+	router.Use(middleware.Logger)
+
+	// Create Repositories
+	userRepository := users.NewSQLiteUserRepository(conn)
+
+	// Initialise handlers
+	authHandler := auth.NewAuthHandler(userRepository)
+	userHandler := users.NewUserHandler(userRepository)
+
+	/* Public routes */
+
+	// Auth rotes
+	router.Route("/api/v1/auth", func(r chi.Router) {
+		r.Post("/register", authHandler.Register)
+		r.Post("/", authHandler.Login)
+	})
+
+	router.Route("/api/v1/users", func(r chi.Router) {
+		r.Get("/", userHandler.GetUser)
+	})
+
+	// Ws Server
+	gameServer := game.NewGameServer()
+
+	router.Handle("/ws", gameServer)
 
 	fmt.Println("Go Server listening on ws://localhost:8080/ws")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
