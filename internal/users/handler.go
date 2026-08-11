@@ -9,14 +9,12 @@ import (
 )
 
 type UserHandler struct {
-	userServ userService
+	userServ *UserService
 }
 
-func NewUserHandler(repo UserRepository) *UserHandler {
+func NewUserHandler(userService *UserService) *UserHandler {
 	return &UserHandler{
-		userServ: userService{
-			userRepo: repo,
-		},
+		userServ: userService,
 	}
 }
 

@@ -13,19 +13,20 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidToken       = errors.New("invalid token")
 	ErrExpiredToken       = errors.New("token has expired")
-	ErrEmailInUse         = errors.New("email already in use")
+	ErrUsernameInUse      = errors.New("username already in use")
+	ErrInternalError      = errors.New("Somthing went wrong")
 )
 
-// authService provides authentication functionality
-type authService struct {
+// AuthService provides authentication functionality
+type AuthService struct {
 	userRepo       users.UserRepository
 	jwtSecret      []byte
 	accessTokenTTL time.Duration
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(userRepo users.UserRepository, jwtSecret string, accessTokenTTL time.Duration) *authService {
-	return &authService{
+func NewAuthService(userRepo users.UserRepository, jwtSecret string, accessTokenTTL time.Duration) *AuthService {
+	return &AuthService{
 		userRepo:       userRepo,
 		jwtSecret:      []byte(jwtSecret),
 		accessTokenTTL: accessTokenTTL,
@@ -33,16 +34,15 @@ func NewAuthService(userRepo users.UserRepository, jwtSecret string, accessToken
 }
 
 // Register creates a new user with the provided credentials
-func (s *authService) Register(username, password, firstName, lastName string) (*users.User, error) {
+func (s *AuthService) Register(username, password, firstName, lastName string) (*users.User, error) {
 	// Check if user already exists
-	_, err := s.userRepo.GetUserByUsername(username)
-	if err == nil {
-		return nil, ErrEmailInUse
+	isExist, err := s.userRepo.IsUsernameExits(username)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
 	}
 
-	// Only proceed if the error was "user not found"
-	if !errors.Is(err, sql.ErrNoRows) {
-		return nil, err
+	if isExist {
+		return nil, ErrUsernameInUse
 	}
 
 	// Hash the password
@@ -61,7 +61,7 @@ func (s *authService) Register(username, password, firstName, lastName string) (
 }
 
 // Login authenticates a user and returns an access token
-func (s *authService) Login(username, password string) (string, error) {
+func (s *AuthService) Login(username, password string) (string, error) {
 	// Get the user from the database
 	user, err := s.userRepo.GetUserByUsername(username)
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *authService) Login(username, password string) (string, error) {
 }
 
 // generateAccessToken creates a new JWT access token
-func (s *authService) generateAccessToken(user *users.User) (string, error) {
+func (s *AuthService) generateAccessToken(user *users.User) (string, error) {
 	// Set the expiration time
 	expirationTime := time.Now().Add(s.accessTokenTTL)
 
@@ -108,9 +108,9 @@ func (s *authService) generateAccessToken(user *users.User) (string, error) {
 }
 
 // ValidateToken verifies a JWT token and returns the claims
-func (s *authService) ValidateToken(tokenString string) (jwt.MapClaims, error) {
+func (s *AuthService) ValidateToken(tokenString string) (jwt.MapClaims, error) {
 	// Parse the token
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		// Validate the signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken

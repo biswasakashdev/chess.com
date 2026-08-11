@@ -17,42 +17,62 @@ func NewSQLiteUserRepository(db *sql.DB) *SQLiteUserRepository {
 	}
 }
 
-func (ur *SQLiteUserRepository) Save() (*User, error) {
-
-	return &User{
-		FirstName:      "Akash",
-		LastName:       "Biswas",
-		Id:             uuid.New(),
-		Username:       "abc123",
-		HashedPassword: "hashed",
-		CreatedAt:      time.Now(),
-	}, nil
-}
-
 func (ur *SQLiteUserRepository) IsUsernameExits(username string) (bool, error) {
-	return false, nil
+
+	query := `
+		SELECT EXISTS(SELECT 1 FROM users WHERE username = $1);
+	`
+
+	var isExists bool
+
+	err := ur.db.QueryRow(query, username).Scan(&isExists)
+
+	if err != nil {
+		return false, err
+	}
+	return isExists, nil
 }
 
 func (ur *SQLiteUserRepository) GetUserByUsername(username string) (*User, error) {
 
-	return &User{
-		FirstName:      "Akash",
-		LastName:       "Biswas",
-		Id:             uuid.New(),
-		Username:       "abc123",
-		HashedPassword: "hashed",
-		CreatedAt:      time.Now(),
-	}, nil
+	query := `
+		SELECT id, username, hashed_password, first_name, last_name, created_at from users where username = $1;
+	`
+
+	var user User
+
+	err := ur.db.QueryRow(query, username).Scan(
+		&user.Id,
+		&user.Username,
+		&user.HashedPassword,
+		&user.FirstName,
+		&user.LastName,
+		&user.CreatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (ur *SQLiteUserRepository) CreateUser(username, hashedPassword, firstName, lastName string) (*User, error) {
-
-	return &User{
-		FirstName:      "Akash",
-		LastName:       "Biswas",
+	user := &User{
 		Id:             uuid.New(),
-		Username:       "abc123",
-		HashedPassword: "hashed",
+		Username:       username,
+		HashedPassword: hashedPassword,
+		FirstName:      firstName,
+		LastName:       lastName,
 		CreatedAt:      time.Now(),
-	}, nil
+	}
+	query := `
+        INSERT INTO users (id, username, hashed_password, first_name, last_name, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+    `
+	_, err := ur.db.Exec(query, user.Id, user.Username, user.HashedPassword, user.FirstName, user.LastName, user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

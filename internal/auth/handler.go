@@ -4,19 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/biswasakashdev/chess.com/internal/users"
 )
 
 type AuthHandler struct {
-	authServ authService
+	authServ *AuthService
 }
 
-func NewAuthHandler(userRepo users.UserRepository) *AuthHandler {
+func NewAuthHandler(authService *AuthService) *AuthHandler {
 	return &AuthHandler{
-		authServ: authService{
-			userRepo: userRepo,
-		},
+		authServ: authService,
 	}
 }
 
