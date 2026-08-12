@@ -53,16 +53,20 @@ func main() {
 
 	/* Protected routes */
 
-	router.Use(middleware.AuthMiddleware(authService))
+	router.Group(func(r chi.Router) {
 
-	router.Route("/api/v1/users", func(r chi.Router) {
-		r.Get("/", userHandler.GetUser)
+		r.Use(middleware.AuthMiddleware(authService))
+
+		r.Route("/api/v1/users", func(r chi.Router) {
+			r.Get("/", userHandler.GetUser)
+		})
+
+		// Ws Server
+		gameServer := game.NewGameServer()
+
+		r.Handle("/ws", gameServer)
+
 	})
-
-	// Ws Server
-	gameServer := game.NewGameServer()
-
-	router.Handle("/ws", gameServer)
 
 	fmt.Printf("%s Server listening on %s port.", config.AppName, config.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", config.Port), router))

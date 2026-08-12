@@ -1,2 +1,2 @@
 run:
-	go build main.go && ./main
+	go build -o bin cmd/app/main.go && ./bin/main
