@@ -1,4 +1,4 @@
-module github.com/biswasakashdev/chess.com
+module github.com/biswasakashdev/chess.com/server
 
 go 1.26.2
 

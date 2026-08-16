@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/biswasakashdev/chess.com/internal/auth"
-	cfg "github.com/biswasakashdev/chess.com/internal/config"
-	"github.com/biswasakashdev/chess.com/internal/database"
-	"github.com/biswasakashdev/chess.com/internal/game"
-	"github.com/biswasakashdev/chess.com/internal/middleware"
-	"github.com/biswasakashdev/chess.com/internal/users"
+	"github.com/biswasakashdev/chess.com/server/internal/auth"
+	cfg "github.com/biswasakashdev/chess.com/server/internal/config"
+	"github.com/biswasakashdev/chess.com/server/internal/database"
+	"github.com/biswasakashdev/chess.com/server/internal/game"
+	"github.com/biswasakashdev/chess.com/server/internal/middleware"
+	"github.com/biswasakashdev/chess.com/server/internal/users"
 	"github.com/go-chi/chi/v5"
 	chiMiddle "github.com/go-chi/chi/v5/middleware"
 )
@@ -24,8 +24,13 @@ func main() {
 
 	config := cfg.Load()
 
+	/* Initialise the database connection */
 	conn := database.Connect()
 
+	/* Create schema */
+	database.InitSchema(conn)
+
+	/* Create the router */
 	router := chi.NewRouter()
 
 	// Logger middleware.

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/biswasakashdev/chess.com/internal/users"
+	"github.com/biswasakashdev/chess.com/server/internal/users"
 	"github.com/golang-jwt/jwt/v5"
 )
 

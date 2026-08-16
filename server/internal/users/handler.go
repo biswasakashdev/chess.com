@@ -20,6 +20,10 @@ func NewUserHandler(userService *UserService) *UserHandler {
 
 func (uh *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 
+	// ctx := r.Context()
+
+	// userId := ctx.Value(middleware.UserIDKey).(string)
+
 	user := User{
 		FirstName:      "Akash",
 		LastName:       "Biswas",
