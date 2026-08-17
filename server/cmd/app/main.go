@@ -10,6 +10,7 @@ import (
 	cfg "github.com/biswasakashdev/chess.com/server/internal/config"
 	"github.com/biswasakashdev/chess.com/server/internal/database"
 	"github.com/biswasakashdev/chess.com/server/internal/game"
+	"github.com/biswasakashdev/chess.com/server/internal/handlers"
 	"github.com/biswasakashdev/chess.com/server/internal/middleware"
 	"github.com/biswasakashdev/chess.com/server/internal/users"
 	"github.com/go-chi/chi/v5"
@@ -45,16 +46,13 @@ func main() {
 	authService := auth.NewAuthService(sqLiteUserRepo, config.JwtSecret, Day)
 
 	// Initialise handlers
-	authHandler := auth.NewAuthHandler(authService)
-	userHandler := users.NewUserHandler(userService)
+	authRouter := handlers.NewAuthRouter(authService)
+	userRouter := handlers.NewUserRouter(userService)
 
 	/* Public routes */
 
 	// Auth rotes
-	router.Route("/api/v1/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.Register)
-		r.Post("/", authHandler.Login)
-	})
+	router.Mount("/api/v1/auth", authRouter)
 
 	/* Protected routes */
 
@@ -62,9 +60,7 @@ func main() {
 
 		r.Use(middleware.AuthMiddleware(authService))
 
-		r.Route("/api/v1/users", func(r chi.Router) {
-			r.Get("/", userHandler.GetUser)
-		})
+		r.Mount("/api/v1/users", userRouter)
 
 		// Ws Server
 		gameServer := game.NewGameServer()

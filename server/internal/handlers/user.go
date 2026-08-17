@@ -1,30 +1,38 @@
-package users
+package handlers
 
 import (
 	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/biswasakashdev/chess.com/server/internal/users"
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
-type UserHandler struct {
-	userServ *UserService
+type userHandler struct {
+	userServ *users.UserService
 }
 
-func NewUserHandler(userService *UserService) *UserHandler {
-	return &UserHandler{
+func NewUserRouter(userService *users.UserService) chi.Router {
+
+	userHandl := userHandler{
 		userServ: userService,
 	}
+	router := chi.NewRouter()
+
+	router.HandleFunc("/", userHandl.getUser)
+
+	return router
 }
 
-func (uh *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 
 	// ctx := r.Context()
 
 	// userId := ctx.Value(middleware.UserIDKey).(string)
 
-	user := User{
+	user := users.User{
 		FirstName:      "Akash",
 		LastName:       "Biswas",
 		Id:             uuid.New(),

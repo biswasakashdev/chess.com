@@ -1,19 +1,28 @@
-package auth
+package handlers
 
 import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/biswasakashdev/chess.com/server/internal/auth"
+	"github.com/go-chi/chi/v5"
 )
 
-type AuthHandler struct {
-	authServ *AuthService
+type authHandler struct {
+	authServ *auth.AuthService
 }
 
-func NewAuthHandler(authService *AuthService) *AuthHandler {
-	return &AuthHandler{
+func NewAuthRouter(authService *auth.AuthService) chi.Router {
+	authHandl := authHandler{
 		authServ: authService,
 	}
+	router := chi.NewRouter()
+
+	router.HandleFunc("/", authHandl.login)
+	router.HandleFunc("/register", authHandl.register)
+
+	return router
 }
 
 type RegisterRequest struct {
@@ -30,7 +39,7 @@ type RegisterResponse struct {
 	LastName  string `json:"lastName"`
 }
 
-func (ah *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) register(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -63,7 +72,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
-func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (ah *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -74,7 +83,7 @@ func (ah *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	authToken, err := ah.authServ.Login(req.Username, req.Password)
 
 	if err != nil {
-		if errors.Is(err, ErrInvalidCredentials) {
+		if errors.Is(err, auth.ErrInvalidCredentials) {
 			http.Error(w, "Invalid credentials", http.StatusBadRequest)
 			return
 		}
