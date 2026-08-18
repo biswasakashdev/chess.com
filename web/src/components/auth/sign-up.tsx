@@ -15,7 +15,7 @@ import { useActionState, useEffect, useState } from "react"
 import { type AuthMode } from "@/pages/auth.page"
 import { CardDescription } from "../ui/card"
 import { UserSchema } from "@/schemas/user.schema"
-import axios from "axios"
+import useAuthContext from "@/context/auth.context"
 
 export const SignUpForm = ({
   variants,
@@ -27,6 +27,7 @@ export const SignUpForm = ({
 
   updateFormError: (formError: string | undefined) => void
 }) => {
+  const { client } = useAuthContext()
   const [formState, action, isLoading] = useActionState<SignUpForm, FormData>(
     async (_state: SignUpForm, formData: FormData) => {
       const userData = {
@@ -56,7 +57,7 @@ export const SignUpForm = ({
 
       const userDetails = result.data
 
-      const res = await axios.post(
+      const res = await client.post(
         `/api/v1/auth/register`,
         {
           username: userDetails.username,
@@ -121,7 +122,7 @@ export const SignUpForm = ({
     >
       {errors.err && <CardDescription>{errors.err}</CardDescription>}
       <FieldSet>
-        <FieldGroup className="flex">
+        <FieldGroup className="flex-row">
           {/* First Name Input */}
           <Field className="space-y-1.5">
             <FieldLabel htmlFor="first-name">First Name</FieldLabel>

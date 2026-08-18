@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -61,9 +62,12 @@ func (s *AuthService) Register(username, password, firstName, lastName string) (
 }
 
 // Login authenticates a user and returns an access token
-func (s *AuthService) Login(username, password string) (string, error) {
+func (s *AuthService) Login(username, password string, ctx context.Context) (string, error) {
+
+	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	defer cancel()
 	// Get the user from the database
-	user, err := s.userRepo.GetUserByUsername(username)
+	user, err := s.userRepo.FindByUsername(username, newCtx)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}

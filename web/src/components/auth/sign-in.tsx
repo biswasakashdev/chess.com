@@ -1,14 +1,14 @@
-import { useActionState, useEffect, useState } from "react"
-import { motion, type Variants } from "framer-motion"
-import { Mail, ArrowRight } from "lucide-react"
+import PasswordInputWithToggle from "@/components/password-toggle-input"
 import { Button } from "@/components/ui/button"
+import { Field, FieldError } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import PasswordInputWithToggle from "@/components/password-toggle-input"
-import { Field, FieldError } from "@/components/ui/field"
-import { UserCredentialSchema } from "@/schemas/user.schema"
-import axios from "axios"
+import useAuthContext from "@/context/auth.context"
 import type { AuthMode } from "@/pages/auth.page"
+import { UserCredentialSchema } from "@/schemas/user.schema"
+import { motion, type Variants } from "framer-motion"
+import { ArrowRight, Mail } from "lucide-react"
+import { useActionState, useEffect, useState } from "react"
 import { useNavigate } from "react-router"
 
 export const SignInForm = ({
@@ -20,6 +20,7 @@ export const SignInForm = ({
   updateFormError: (formError: string | undefined) => void
 }) => {
   const navigate = useNavigate()
+  const { updateAuthorization, client } = useAuthContext()
 
   const [state, action, isLoading] = useActionState<SignInForm, FormData>(
     async (_prevState: SignInForm, formData: FormData) => {
@@ -44,7 +45,7 @@ export const SignInForm = ({
         }
       }
 
-      const res = await axios.post(`/api/v1/auth`, result.data, {
+      const res = await client.post(`/api/v1/auth`, result.data, {
         params: {
           rememberMe,
         },
@@ -65,8 +66,8 @@ export const SignInForm = ({
           errors: err,
         }
       }
-
-      navigate("/home")
+      updateAuthorization(data.token)
+      navigate("/")
 
       return {
         state: {},
@@ -104,15 +105,15 @@ export const SignInForm = ({
       action={action}
       className="space-y-4"
     >
-      {/* Email */}
+      {/* Username */}
       <Field className="space-y-1.5">
-        <Label htmlFor="signin-email">Email</Label>
+        <Label htmlFor="signin-username">Username</Label>
         <div className="relative">
           <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            id="signin-email"
+            id="signin-username"
             type="text"
-            name="email"
+            name="username"
             required
             defaultValue={state.state.username}
             placeholder="name@example.com"

@@ -7,7 +7,6 @@ export function App() {
     <AuthProvider>
       {/* 1. Header */}
       <Navbar />
-
       <Outlet />
     </AuthProvider>
   )

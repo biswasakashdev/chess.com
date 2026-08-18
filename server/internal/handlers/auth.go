@@ -80,7 +80,9 @@ func (ah *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	authToken, err := ah.authServ.Login(req.Username, req.Password)
+	ctx := r.Context()
+
+	authToken, err := ah.authServ.Login(req.Username, req.Password, ctx)
 
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {

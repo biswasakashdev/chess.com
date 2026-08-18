@@ -14,11 +14,6 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       proxy: {
-        "/backend/ws": {
-          target: `ws://${serverUrl}`,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/backend/, ""),
-        },
         "/backend/api": {
           target: `http://${serverUrl}`,
           changeOrigin: true,

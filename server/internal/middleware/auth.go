@@ -45,20 +45,14 @@ func AuthMiddleware(authService *auth.AuthService) func(http.Handler) http.Handl
 			}
 
 			// Extract user ID from claims
-			userIDStr, ok := claims["sub"].(string)
+			userId, ok := claims["sub"].(string)
 			if !ok {
 				http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 				return
 			}
 
-			userID, err := uuid.Parse(userIDStr)
-			if err != nil {
-				http.Error(w, "Invalid user ID in token", http.StatusUnauthorized)
-				return
-			}
-
 			// Add user ID to request context
-			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx := context.WithValue(r.Context(), UserIDKey, userId)
 
 			// Call the next handler with the enhanced context
 			next.ServeHTTP(w, r.WithContext(ctx))
