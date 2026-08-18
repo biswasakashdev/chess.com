@@ -11,8 +11,6 @@ export const UserContext = createContext<{
   user: {
     firstName: "",
     lastName: "",
-    email: "",
-    avatar: "",
   },
 })
 

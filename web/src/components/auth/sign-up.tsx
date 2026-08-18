@@ -1,6 +1,12 @@
 import PasswordInputWithToggle from "@/components/password-toggle-input"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldLabel, FieldSet } from "@/components/ui/field"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { motion, type Variants } from "framer-motion"
@@ -24,10 +30,9 @@ export const SignUpForm = ({
   const [formState, action, isLoading] = useActionState<SignUpForm, FormData>(
     async (_state: SignUpForm, formData: FormData) => {
       const userData = {
-        phone: formData.get("phone")?.toString(),
-        countryCode: formData.get("countryCode")?.toString(),
-        email: formData.get("email")?.toString(),
-        name: formData.get("fullName")?.toString(),
+        firstName: formData.get("firstName")?.toString(),
+        lastName: formData.get("lastName")?.toString(),
+        username: formData.get("username")?.toString(),
         password: formData.get("password")?.toString(),
         confirmPassword: formData.get("confirmPassword")?.toString(),
       }
@@ -54,11 +59,10 @@ export const SignUpForm = ({
       const res = await axios.post(
         `/api/v1/auth/register`,
         {
-          email: userDetails.email,
+          username: userDetails.username,
           password: userDetails.password,
-          name: userDetails.name,
-          phone: userDetails.phone,
-          countryCode: userDetails.countryCode,
+          firstName: userDetails.firstName,
+          lastName: userDetails.lastName,
         },
         {
           validateStatus: () => true,
@@ -117,39 +121,59 @@ export const SignUpForm = ({
     >
       {errors.err && <CardDescription>{errors.err}</CardDescription>}
       <FieldSet>
-        {/* Name Inputs */}
-        <Field className="space-y-1.5">
-          <FieldLabel htmlFor="first-name">Full Name</FieldLabel>
-          <div className="relative">
-            <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              name="fullName"
-              id="full-name"
-              type="text"
-              required
-              placeholder="John Dow"
-              className="pl-9"
-            />
-          </div>
-          {errors.name && <FieldError>{errors.name}</FieldError>}
-        </Field>
+        <FieldGroup className="flex">
+          {/* First Name Input */}
+          <Field className="space-y-1.5">
+            <FieldLabel htmlFor="first-name">First Name</FieldLabel>
+            <div className="relative">
+              <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                name="firstName"
+                id="first-name"
+                type="text"
+                required
+                placeholder="John"
+                className="pl-9"
+              />
+            </div>
+            {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
+          </Field>
+
+          {/* Last Name Input */}
+
+          <Field className="space-y-1.5">
+            <FieldLabel htmlFor="last-name">Last Name</FieldLabel>
+            <div className="relative">
+              <User className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                name="lastName"
+                id="last-name"
+                type="text"
+                required
+                placeholder="Doe"
+                className="pl-9"
+              />
+            </div>
+            {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
+          </Field>
+        </FieldGroup>
 
         {/* Email Input */}
         <Field className="space-y-1.5">
-          <Label htmlFor="signup-email">Email address</Label>
+          <Label htmlFor="username">Username</Label>
           <div className="relative">
             <Mail className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              id="signup-email"
-              type="email"
-              name="email"
+              id="username"
+              type="text"
+              name="username"
               required
-              placeholder="alex@example.com"
+              placeholder="alex199"
               className="pl-9"
             />
           </div>
 
-          {errors.email && <FieldError>{errors.email}</FieldError>}
+          {errors.username && <FieldError>{errors.username}</FieldError>}
         </Field>
 
         {/* Password Inputs with Custom PasswordWithToggle */}
@@ -198,20 +222,18 @@ export interface SignUpForm {
 }
 
 export interface SignUpFormFields {
-  email?: string
-  name?: string
+  username?: string
+  firstName?: string
+  lastName?: string
   password?: string
   confirmPassword?: string
-  phone?: string
-  countryCode?: string
 }
 
 export interface SignUpFormError {
   err?: string
-  email?: string
+  username?: string
   password?: string
   confirmPassword?: string
-  name?: string
-  phone?: string
-  countryCode?: string
+  firstName?: string
+  lastName?: string
 }

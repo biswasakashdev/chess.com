@@ -5,17 +5,15 @@ export interface Authorization {
 export interface User {
   firstName: string
   lastName: string
-  email: string
-  avatar: string
 }
 
 export interface UserCredentials {
-  email: string
+  username: string
   password: string
 }
 
 export interface UserDetails {
-  email: string
+  username: string
   firstName: string
   lastName: string
   password: string

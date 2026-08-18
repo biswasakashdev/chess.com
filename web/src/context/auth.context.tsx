@@ -1,12 +1,13 @@
-import type { Authorization } from "@/types/user.types"
 import { createContext, useContext } from "react"
 
 export const AuthContext = createContext<{
-  authorization: Authorization | undefined
-  updateAuthorization: (auth: Authorization | undefined) => void
+  authorization: string | undefined
+  updateAuthorization: (auth: string | undefined) => void
+  clearAuthorization: () => void
 }>({
   authorization: undefined,
   updateAuthorization: () => {},
+  clearAuthorization: () => {},
 })
 const useAuthContext = () => {
   return useContext(AuthContext)

@@ -24,7 +24,7 @@ export const SignInForm = ({
   const [state, action, isLoading] = useActionState<SignInForm, FormData>(
     async (_prevState: SignInForm, formData: FormData) => {
       const formFields = {
-        email: formData.get("email")?.toString() || "",
+        username: formData.get("username")?.toString() || "",
         password: formData.get("password")?.toString() || "",
       }
 
@@ -38,7 +38,7 @@ export const SignInForm = ({
         }
         return {
           state: {
-            email: formFields.email,
+            username: formFields.username,
           },
           errors: formError,
         }
@@ -114,7 +114,7 @@ export const SignInForm = ({
             type="text"
             name="email"
             required
-            defaultValue={state.state.email}
+            defaultValue={state.state.username}
             placeholder="name@example.com"
             className="pl-9"
             onFocus={() =>
@@ -122,7 +122,7 @@ export const SignInForm = ({
             }
           />
         </div>
-        {errors.email && <FieldError>{errors.email}</FieldError>}
+        {errors.username && <FieldError>{errors.username}</FieldError>}
       </Field>
 
       {/* Password Field */}
@@ -167,12 +167,12 @@ export interface SignInForm {
 }
 
 export interface SignInFormFields {
-  email?: string
+  username?: string
   rememberMe?: boolean
 }
 
 export interface SignInFormError {
   err?: string
-  email?: string
+  username?: string
   password?: string
 }

@@ -1,32 +1,29 @@
-import { fetchAuthorization } from "@/api/auth.api"
 import { AuthContext } from "@/context/auth.context"
-import type { Authorization } from "@/types/user.types"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+
+const AUTH_TOKEN = "authtoken"
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [authorization, setAuthorization] = useState<Authorization | undefined>(
-    undefined
+  const localToken = localStorage.getItem(AUTH_TOKEN) || undefined
+  const [authorization, setAuthorization] = useState<string | undefined>(
+    localToken
   )
 
-  const updateAuthorization = (auth: Authorization | undefined) => {
+  const updateAuthorization = (auth: string | undefined) => {
     setAuthorization(auth)
   }
 
-  useEffect(() => {
-    const getAuthorization = async () => {
-      const auth = await fetchAuthorization()
-      if (auth) {
-        setAuthorization({ token: auth })
-      }
-    }
-    getAuthorization()
-  }, [])
+  const clearAuthorization = () => {
+    setAuthorization(undefined)
+    localStorage.removeItem(AUTH_TOKEN)
+  }
 
   return (
     <AuthContext.Provider
       value={{
         authorization: authorization,
         updateAuthorization: updateAuthorization,
+        clearAuthorization: clearAuthorization,
       }}
     >
       {children}

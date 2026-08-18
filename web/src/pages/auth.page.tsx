@@ -1,15 +1,14 @@
-import React, { useState } from "react"
-import { AnimatePresence, type Variants } from "framer-motion"
-import { Navbar } from "@/components/auth/navbar"
 import { SignInForm } from "@/components/auth/sign-in"
 import { SignUpForm } from "@/components/auth/sign-up"
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card"
+import { AnimatePresence, type Variants } from "framer-motion"
+import { useState } from "react"
 
 const formTransition: Variants = {
   hidden: { opacity: 0, x: -10 },
@@ -33,9 +32,6 @@ export const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-background text-foreground antialiased">
-      {/* 1. Header */}
-      <Navbar />
-
       {/* 2. Main Authentication Container */}
       <main className="flex flex-1 items-center justify-center p-4">
         <Card className="w-full max-w-110 shadow-sm">

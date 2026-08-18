@@ -7,12 +7,14 @@ export const UserCredentialSchema = z.object({
 
 export const UserSchema = z
   .object({
-    email: z.email("Invalid email address"),
-    countryCode: z.string().min(2, "Country code required"),
-    phone: z.string().min(5, "Phone number required"),
+    username: z
+      .string()
+      .min(5, "Too short username")
+      .max(15, "Too large username"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(6, "Confirm password required"),
-    name: z.string().min(2, "Name required"),
+    firstName: z.string().min(3, "Name required"),
+    lastName: z.string().min(3, "Name required"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -20,9 +22,9 @@ export const UserSchema = z
   })
 
 export const UserCredentials = z.object({
-  email: z.email("Invalid email address"),
-  password: z
+  username: z
     .string()
-    .min(6, "Password must be at least 6 characters")
-    .max(100, "Password too long"),
+    .min(5, "Too short username")
+    .max(15, "Too large username"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 })
