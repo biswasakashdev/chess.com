@@ -1,4 +1,4 @@
-package game
+package chess
 
 // JSON Payload structures
 type Position struct {
