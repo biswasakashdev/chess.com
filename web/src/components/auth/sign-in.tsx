@@ -67,7 +67,7 @@ export const SignInForm = ({
         }
       }
       updateAuthorization(data.token)
-      navigate("/")
+      navigate("/home")
 
       return {
         state: {},

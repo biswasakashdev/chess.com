@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import { RouterProvider } from "react-router"
 import "./index.css"
-import { router } from "./routes"
+import router from "./routes"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

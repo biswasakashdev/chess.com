@@ -32,6 +32,13 @@ export const AuthPage = () => {
 
   return (
     <div className="flex min-h-screen flex-col justify-between bg-background text-foreground antialiased">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-50 flex w-full justify-center border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4 sm:px-8">
+          <img src="/logo.png" alt="logo" className="h-full" />
+        </div>
+      </header>
+
       {/* 2. Main Authentication Container */}
       <main className="flex flex-1 items-center justify-center p-4">
         <Card className="w-full max-w-110 shadow-sm">

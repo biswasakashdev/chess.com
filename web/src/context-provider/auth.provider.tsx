@@ -30,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     headers: {
       Authorization: authorization ? `Bearer ${authorization}` : undefined,
     },
+    validateStatus: () => true,
   })
 
   return (
