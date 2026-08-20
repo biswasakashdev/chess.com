@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Day time.Duration = time.Hour * 2
+	Day time.Duration = time.Hour * 24
 )
 
 func main() {
