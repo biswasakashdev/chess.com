@@ -10,9 +10,13 @@ import (
 )
 
 type Hub struct {
-	clients    map[string]*Client
-	rooms      map[string]*GameRoom
-	Register   chan *Client
+	// Online clients
+	clients map[string]*Client
+	// Activated games
+	rooms map[string]*GameRoom
+	// Register Chnnel
+	Register chan *Client
+	// If client close the conn
 	Unregister chan *Client
 	mu         sync.RWMutex
 	rng        *rand.Rand

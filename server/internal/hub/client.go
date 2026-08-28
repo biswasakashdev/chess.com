@@ -19,9 +19,10 @@ type Client struct {
 	Hub    *Hub
 	Conn   *websocket.Conn
 	UserID string
-	Send   chan []byte
+	Send   chan []byte // What needs to send to the client comes to this channel.
 }
 
+// Reads the incomming messages from the connection and pass to the event handler.
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c

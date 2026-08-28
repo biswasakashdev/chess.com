@@ -16,7 +16,7 @@ type GameRoom struct {
 	ID          string
 	WhitePlayer *Client
 	BlackPlayer *Client
-	Game        *chess.Game
+	Game        chess.Chess
 	MoveChan    chan MoveAction
 	StopChan    chan struct{}
 	mu          sync.Mutex
@@ -42,25 +42,25 @@ func (r *GameRoom) Run() {
 			r.mu.Lock()
 
 			// Check player turn
-			turn := r.Game.Position().Turn()
-			if (turn == chess.White && action.PlayerID != r.WhitePlayer.UserID) ||
-				(turn == chess.Black && action.PlayerID != r.BlackPlayer.UserID) {
+			turn := r.Game.GetTurn()
+			if (turn == chess.TurnWhite && action.PlayerID != r.WhitePlayer.UserID) ||
+				(turn == chess.TurnBlack && action.PlayerID != r.BlackPlayer.UserID) {
 				r.mu.Unlock()
 				r.sendToPlayer(action.PlayerID, EventError, ErrorPayload{Message: "Not your turn"})
 				continue
 			}
 
 			// Validate and execute move
-			err := r.Game.MoveStr(action.MoveUCI)
+			err := r.Game.MakeMove(action.MoveUCI)
 			if err != nil {
 				r.mu.Unlock()
 				r.sendToPlayer(action.PlayerID, EventError, ErrorPayload{Message: "Invalid move: " + err.Error()})
 				continue
 			}
 
-			fen := r.Game.Position().String()
-			outcome := r.Game.Outcome()
-			method := r.Game.Method()
+			// Return the state of the board
+			fen := r.Game.GetBoard()
+			outcome := r.Game.GetOutCome()
 			r.mu.Unlock()
 
 			// Broadcast move to both players
@@ -72,11 +72,16 @@ func (r *GameRoom) Run() {
 
 			// Check for game completion
 			if outcome != chess.NoOutcome {
-				r.broadcast(EventGameOver, GameOverPayload{
+				payload := GameOverPayload{
 					GameID: r.ID,
-					Result: outcome.String(),
-					Reason: method.String(),
-				})
+					Reason: "Win",
+				}
+				if outcome == chess.BlackWin {
+					payload.Reason = ""
+				} else {
+					payload.Reason = ""
+				}
+				r.broadcast(EventGameOver, payload)
 				return
 			}
 		}

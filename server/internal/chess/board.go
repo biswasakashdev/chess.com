@@ -45,6 +45,7 @@ func (p Piece) String() string {
 	return []string{".", "R", "N", "B", "K", "Q", "P"}[p.Type]
 }
 
+// Board
 type Board [8][8]Piece
 
 func newBoard() Board {
@@ -107,19 +108,8 @@ func newBoard() Board {
 	}
 
 	return grid
-
 }
 
-// Create a res
-
-func (b Board) ToBoardRes() [8][8]string {
-
-	var board [8][8]string
-	for row := range b {
-		for col := range board[row] {
-			board[row][col] = b[row][col].String()
-		}
-	}
-
-	return board
+func (b *Board) String() string {
+	return ""
 }
