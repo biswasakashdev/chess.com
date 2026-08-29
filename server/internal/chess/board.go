@@ -35,6 +35,26 @@ type Piece struct {
 	Color Color
 }
 
+func (p *Piece) isWhite() bool {
+	return p.Color == White
+}
+
+func (p *Piece) isNothing() bool {
+	return p.Color == Nothing
+}
+
+func (p *Piece) isBlack() bool {
+	return p.Color == Black
+}
+
+func (p *Piece) isEnemy(target Piece) bool {
+
+	if p.isNothing() || target.isNothing() {
+		return false
+	}
+	return p.Color != target.Color
+}
+
 func (p Piece) String() string {
 
 	// When the color black then this execute

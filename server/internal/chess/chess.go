@@ -10,7 +10,7 @@ const (
 type OutCome int
 
 const (
-	NoOutcome OutCome = iota
+	NoOutCome OutCome = iota
 	BlackWin
 	WhiteWin
 )
@@ -18,6 +18,7 @@ const (
 type Chess interface {
 	GetBoard() string
 	MakeMove(string) error
+	GetAvailableMoves(string) string
 	GetTurn() Turn
 	GetOutCome() OutCome
 }

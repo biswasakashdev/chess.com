@@ -71,7 +71,7 @@ func (r *GameRoom) Run() {
 			})
 
 			// Check for game completion
-			if outcome != chess.NoOutcome {
+			if outcome != chess.NoOutCome {
 				payload := GameOverPayload{
 					GameID: r.ID,
 					Reason: "Win",
