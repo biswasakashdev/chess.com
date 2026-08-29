@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/biswasakashdev/chess.com/server/internal/util"
+	"github.com/biswasakashdev/chess.com/internal/util"
 )
 
 type UserService struct {

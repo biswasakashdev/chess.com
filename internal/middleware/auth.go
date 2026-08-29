@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/biswasakashdev/chess.com/server/internal/auth"
+	"github.com/biswasakashdev/chess.com/internal/auth"
 	"github.com/google/uuid"
 )
 

@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/biswasakashdev/chess.com/server/internal/middleware"
-	"github.com/biswasakashdev/chess.com/server/internal/users"
-	"github.com/biswasakashdev/chess.com/server/internal/util"
+	"github.com/biswasakashdev/chess.com/internal/middleware"
+	"github.com/biswasakashdev/chess.com/internal/users"
+	"github.com/biswasakashdev/chess.com/internal/util"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -36,7 +36,11 @@ func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
-	userId := ctx.Value(middleware.UserIDKey).(string)
+	userId, ok := ctx.Value(middleware.UserIDKey).(string)
+
+	if !ok || userId == "" {
+
+	}
 	user, err := uh.userServ.GetUserById(userId, ctx)
 
 	if err != nil {
@@ -52,4 +56,8 @@ func (uh *userHandler) getUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.BuildResponseWithBody(w, &userResp)
+}
+
+func (uh *userHandler) findUserByUsername(w http.ResponseWriter, r *http.Request) {
+
 }

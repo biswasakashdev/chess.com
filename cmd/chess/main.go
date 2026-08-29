@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/biswasakashdev/chess.com/server/internal/chess"
+	"github.com/biswasakashdev/chess.com/internal/chess"
 )
 
 func main() {

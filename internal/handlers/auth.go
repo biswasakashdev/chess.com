@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/biswasakashdev/chess.com/server/internal/auth"
+	"github.com/biswasakashdev/chess.com/internal/auth"
 	"github.com/go-chi/chi/v5"
 )
 

@@ -1,7 +1,7 @@
 import { THEMES, type BoardTheme } from "@/types/board-theme.types"
 import type { BoardResponse, MoveMessage, Position } from "@/types/game.types"
-import { getPossibleMoves } from "@/utils/game/rules"
-import { getPieceImageUrl } from "@/utils/game/pieces"
+import { getPossibleMoves } from "@/lib/game/rules"
+import { getPieceImageUrl } from "@/lib/game/pieces"
 import { useEffect, useRef, useState } from "react"
 import { useParams } from "react-router"
 

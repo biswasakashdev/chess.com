@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"sync"
 
-	"github.com/biswasakashdev/chess.com/server/internal/chess"
+	"github.com/biswasakashdev/chess.com/internal/chess"
 )
 
 type MoveAction struct {

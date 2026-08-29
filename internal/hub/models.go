@@ -12,6 +12,7 @@ const (
 	EventMakeMove        EventType = "make_move"
 	EventMoveMade        EventType = "move_made"
 	EventGameOver        EventType = "game_over"
+	EventAvailableMoves  EventType = "available_moves"
 	EventError           EventType = "error"
 )
 
@@ -20,11 +21,13 @@ type Event struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
+// Client payloads
 type ChallengePayload struct {
 	FromUserID string `json:"from_user_id,omitempty"`
 	ToUserID   string `json:"to_user_id"`
 }
 
+// Server payloads
 type GameStartPayload struct {
 	GameID      string `json:"game_id"`
 	WhitePlayer string `json:"white_player"`

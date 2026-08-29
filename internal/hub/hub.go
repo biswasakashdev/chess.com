@@ -2,14 +2,28 @@ package hub
 
 import (
 	"encoding/json"
+	"log"
 	"math/rand"
+	"net/http"
 	"sync"
 	"time"
 
+	"github.com/biswasakashdev/chess.com/internal/ticket"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 )
 
+/* Upgrade the conn to an websocket conn */
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true // Allow all origins for development
+	},
+}
+
 type Hub struct {
+	ticketService *ticket.TicketService
 	// Online clients
 	clients map[string]*Client
 	// Activated games
@@ -22,14 +36,60 @@ type Hub struct {
 	rng        *rand.Rand
 }
 
-func NewHub() *Hub {
+func NewHub(ticketService *ticket.TicketService) *Hub {
 	return &Hub{
-		clients:    make(map[string]*Client),
-		rooms:      make(map[string]*GameRoom),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		rng:        rand.New(rand.NewSource(time.Now().UnixNano())),
+		ticketService: ticketService,
+		clients:       make(map[string]*Client),
+		rooms:         make(map[string]*GameRoom),
+		Register:      make(chan *Client),
+		Unregister:    make(chan *Client),
+		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+}
+
+func (h *Hub) WsHandle(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+
+	var userID string
+
+	hasTicket := queryParams.Has("ticket")
+	if hasTicket {
+		ticket := queryParams.Get("ticket")
+		val, err := h.ticketService.GetTicket(ticket)
+		if err != nil {
+			w.Header().Add("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"message": "Invalid token",
+			})
+			return
+		}
+		userID = val
+		h.ticketService.DeleteTicket(ticket)
+	} else {
+		w.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "Invalid token",
+		})
+		return
+	}
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println("Upgrade failed:", err)
+		return
+	}
+
+	client := &Client{
+		Hub:    h,
+		Conn:   conn,
+		UserID: userID,
+		Send:   make(chan []byte, 256),
+	}
+
+	h.Register <- client
+
+	go client.WritePump()
+	go client.ReadPump()
 }
 
 func (h *Hub) Run() {

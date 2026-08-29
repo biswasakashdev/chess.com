@@ -5,6 +5,8 @@ import type { User } from "@/types/user.types"
 import { useEffect, useState } from "react"
 import { Outlet, useNavigate } from "react-router"
 
+
+
 export default function HomePage() {
   const { authorization, client, updateAuthorization } = useAuthContext()
   const navigate = useNavigate()

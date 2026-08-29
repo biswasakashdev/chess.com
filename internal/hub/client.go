@@ -78,10 +78,9 @@ func (c *Client) WritePump() {
 			w.Write(message)
 
 			// Drain queued messages
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
+			for data := range c.Send {
 				w.Write([]byte{'\n'})
-				w.Write(<-c.Send)
+				w.Write(data)
 			}
 
 			if err := w.Close(); err != nil {
