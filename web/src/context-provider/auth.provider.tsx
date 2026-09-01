@@ -17,7 +17,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateAuthorization = (auth: string | undefined) => {
     setAuthorization(auth)
-    if (auth) localStorage.setItem(AUTH_TOKEN, auth)
+    if (auth) {
+      localStorage.setItem(AUTH_TOKEN, auth)
+    } else {
+      localStorage.removeItem(AUTH_TOKEN)
+    }
   }
 
   const clearAuthorization = () => {

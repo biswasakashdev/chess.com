@@ -1,252 +1,171 @@
-import { THEMES, type BoardTheme } from "@/types/board-theme.types"
-import type { BoardResponse, MoveMessage, Position } from "@/types/game.types"
-import { getPossibleMoves } from "@/lib/game/rules"
-import { getPieceImageUrl } from "@/lib/game/pieces"
-import { useEffect, useRef, useState } from "react"
-import { useParams } from "react-router"
+import React, { useState, useEffect } from "react";
+import { useParams, useLocation } from "react-router";
+import {
+  useChessSocket,
+  useSocketEvent,
+  type MoveMadePayload,
+  type GameOverPayload,
+} from "@/context/game.context";
+import { ChessBoard } from "@/components/game/chess-board";
+import { GameSidebar, type MoveRecord } from "@/components/game/sidebar";
+import { GameOverDialog } from "@/components/game/game-dialogue";
 
-export default function GamePage() {
-  const { gameId } = useParams()
-  console.log(gameId)
-  const [board, setBoard] = useState<string[][]>(
-    Array(8).fill(Array(8).fill("."))
-  )
-  const [turn, setTurn] = useState<"WHITE" | "BLACK">("WHITE")
-  const [selected, setSelected] = useState<Position | null>(null)
-  const [theme, setTheme] = useState<BoardTheme>(THEMES.greenLichess)
-  const [possibleMoves, setPossibleMoves] = useState<Position[]>([])
+const INITIAL_BOARD = [
+  ["r", "n", "b", "q", "k", "b", "n", "r"],
+  ["p", "p", "p", "p", "p", "p", "p", "p"],
+  [".", ".", ".", ".", ".", ".", ".", "."],
+  [".", ".", ".", ".", ".", ".", ".", "."],
+  [".", ".", ".", ".", ".", ".", ".", "."],
+  [".", ".", ".", ".", ".", ".", ".", "."],
+  ["P", "P", "P", "P", "P", "P", "P", "P"],
+  ["R", "N", "B", "Q", "K", "B", "N", "R"],
+];
 
-  // Explicitly type the WebSocket ref
-  const ws = useRef<WebSocket | null>(null)
+export const GamePage: React.FC = () => {
+  const { gameId } = useParams<{ gameId: string }>();
+  const location = useLocation();
+  const { sendMove } = useChessSocket();
 
-  useEffect(() => {
-    // Initialize WebSocket connection
-    const socket = new WebSocket("ws://localhost:8080/ws")
-    ws.current = socket
+  // Color passed via router state or default
+  const playerColor: "White" | "Black" = location.state?.color || "White";
+  const whitePlayer: string = location.state?.whitePlayer || "White Player";
+  const blackPlayer: string = location.state?.blackPlayer || "Black Player";
 
-    socket.onmessage = (event: MessageEvent) => {
-      try {
-        const data: BoardResponse = JSON.parse(event.data)
-        setBoard(data.board)
-        setTurn(data.turn)
-        // Reset the selection
-        setSelected(null)
-        setPossibleMoves([])
-      } catch (err) {
-        console.error("Failed to parse WebSocket message:", err)
+  const [board, setBoard] = useState<string[][]>(INITIAL_BOARD);
+  const [currentTurn, setCurrentTurn] = useState<"White" | "Black">("White");
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [availableMoves, setAvailableMoves] = useState<string[]>([]);
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
+  const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([]);
+
+  const [gameOverData, setGameOverData] = useState<GameOverPayload | null>(null);
+
+  // 1. Listen for move confirmations from server
+  useSocketEvent("move_made", (data: MoveMadePayload) => {
+    if (data.game_id !== gameId) return;
+
+    const from = data.move.substring(0, 2);
+    const to = data.move.substring(2, 4);
+    setLastMove({ from, to });
+
+    // Parse FEN or execute local board update
+    applyMoveToLocalBoard(from, to);
+
+    // Update move records
+    setMoveHistory((prev) => {
+      const isWhiteMove = currentTurn === "White";
+      if (isWhiteMove) {
+        return [...prev, { turnNumber: prev.length + 1, white: data.move }];
       }
-    }
-
-    socket.onerror = (error) => {
-      console.error("WebSocket Error:", error)
-    }
-
-    // Cleanup on unmount
-    return () => {
-      socket.close()
-    }
-  }, [])
-
-  const handleSquareClick = (row: number, col: number): void => {
-    // If clicking a square that is in possibleMoves, execute the move
-    const isValidTarget = possibleMoves.some(
-      (m) => m.row === row && m.col === col
-    )
-
-    if (selected && isValidTarget) {
-      const movePayload: MoveMessage = {
-        from: selected,
-        to: { row, col },
+      const updated = [...prev];
+      if (updated.length > 0) {
+        updated[updated.length - 1].black = data.move;
       }
+      return updated;
+    });
 
-      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify(movePayload))
-      }
+    // Toggle turn
+    setCurrentTurn((t) => (t === "White" ? "Black" : "White"));
+    setSelectedSquare(null);
+    setAvailableMoves([]);
+  });
 
-      setSelected(null)
-      setPossibleMoves([])
-      return
+  // 2. Listen for game over
+  useSocketEvent("game_over", (data: GameOverPayload) => {
+    if (data.game_id === gameId) {
+      setGameOverData(data);
+    }
+  });
+
+  const applyMoveToLocalBoard = (from: string, to: string) => {
+    const fromR = 8 - parseInt(from[1], 10);
+    const fromC = from.charCodeAt(0) - 97;
+    const toR = 8 - parseInt(to[1], 10);
+    const toC = to.charCodeAt(0) - 97;
+
+    setBoard((prev) => {
+      const next = prev.map((row) => [...row]);
+      const piece = next[fromR][fromC];
+      next[toR][toC] = piece;
+      next[fromR][fromC] = ".";
+      return next;
+    });
+  };
+
+  const handleSquareClick = (square: string) => {
+    if (currentTurn !== playerColor || !gameId) return;
+
+    // Move to clicked destination
+    if (selectedSquare && selectedSquare !== square) {
+      const moveUci = `${selectedSquare}${square}`;
+      sendMove(gameId, moveUci);
+      setSelectedSquare(null);
+      setAvailableMoves([]);
+      return;
     }
 
-    // Otherwise, check if clicking a valid owned piece to select it
-    const clickedPiece = board[row][col]
-    if (clickedPiece !== ".") {
-      const isWhitePiece = clickedPiece === clickedPiece.toUpperCase()
-      if (
-        (turn === "WHITE" && isWhitePiece) ||
-        (turn === "BLACK" && !isWhitePiece)
-      ) {
-        const pos = { row, col }
-        setSelected(pos)
-        // Calculate possible moves locally
-        const moves = getPossibleMoves(board, pos, turn)
-        setPossibleMoves(moves)
-        return
-      }
+    // Select piece
+    const r = 8 - parseInt(square[1], 10);
+    const c = square.charCodeAt(0) - 97;
+    const piece = board[r]?.[c];
+
+    if (!piece || piece === ".") {
+      setSelectedSquare(null);
+      return;
     }
 
-    // Deselect if clicking an empty/invalid square
-    setSelected(null)
-    setPossibleMoves([])
-  }
+    const isWhitePiece = piece === piece.toUpperCase();
+    if (
+      (playerColor === "White" && isWhitePiece) ||
+      (playerColor === "Black" && !isWhitePiece)
+    ) {
+      setSelectedSquare(square);
+    }
+  };
 
-  const resetBoard = () => {}
+  const handleResign = () => {
+    if (window.confirm("Are you sure you want to resign?")) {
+      // Dispatch resign event
+    }
+  };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h2>Golang Real-Time Chess</h2>
-
-      {/* Theme Picker */}
-      <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-        <label>Theme:</label>
-        <select
-          onChange={(e) => setTheme(THEMES[e.target.value])}
-          style={{ padding: "6px 12px", borderRadius: "4px", fontSize: "14px" }}
-        >
-          {Object.keys(THEMES).map((key) => (
-            <option key={key} value={key}>
-              {THEMES[key].name}
-            </option>
-          ))}
-        </select>
+    <div className="flex flex-col lg:flex-row items-center justify-center gap-8 min-h-[calc(100vh-80px)] p-6 bg-background">
+      {/* 8x8 Chessboard */}
+      <div className="flex justify-center items-center w-full max-w-[620px]">
+        <ChessBoard
+          board={board}
+          playerColor={playerColor}
+          selectedSquare={selectedSquare}
+          availableMoves={availableMoves}
+          lastMove={lastMove}
+          isMyTurn={currentTurn === playerColor}
+          onSquareClick={handleSquareClick}
+        />
       </div>
 
-      <h3>
-        Current Turn:{" "}
-        <span style={{ color: turn === "WHITE" ? "#4CAF50" : "#E91E63" }}>
-          {turn}
-        </span>
-      </h3>
-
-      {/* Grid Board */}
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(8, 64px)",
-          gridTemplateRows: "repeat(8, 64px)",
-          border: "4px solid #222",
-          borderRadius: "4px",
-          overflow: "hidden",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
-        }}
-      >
-        {board.map((row, rIdx) =>
-          row.map((cell, cIdx) => {
-            const isDark = (rIdx + cIdx) % 2 === 1
-            const isSelected = selected?.row === rIdx && selected?.col === cIdx
-            const isPossibleMove = possibleMoves.some(
-              (m) => m.row === rIdx && m.col === cIdx
-            )
-            const isCapture = isPossibleMove && cell !== "."
-            const pieceUrl = getPieceImageUrl(cell)
-
-            const cursorType =
-              cell === "."
-                ? "default"
-                : (turn === "BLACK" && cell !== cell.toLowerCase()) ||
-                    (turn === "WHITE" &&
-                      cell !== "." &&
-                      cell !== cell.toUpperCase())
-                  ? "not-allowed"
-                  : "pointer"
-
-            return (
-              <div
-                key={`${rIdx}-${cIdx}`}
-                onClick={() => handleSquareClick(rIdx, cIdx)}
-                style={{
-                  width: "64px",
-                  height: "64px",
-                  backgroundColor: isSelected
-                    ? theme.selectedSquare
-                    : isDark
-                      ? theme.darkSquare
-                      : theme.lightSquare,
-                  display: "flex",
-                  alignItems: "center",
-                  cursor: cursorType,
-                  justifyContent: "center",
-                  userSelect: "none",
-                  position: "relative",
-                }}
-              >
-                {/* Piece Image */}
-                {pieceUrl && (
-                  <img
-                    src={pieceUrl}
-                    alt={cell}
-                    style={{
-                      width: "85%",
-                      height: "85%",
-                      pointerEvents: "none",
-                      zIndex: 1,
-                    }}
-                  />
-                )}
-
-                {/* Move Indicator: Small Dot for empty square */}
-                {isPossibleMove && !isCapture && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      width: "20px",
-                      height: "20px",
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(0, 0, 0, 0.25)",
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  />
-                )}
-
-                {/* Capture Indicator: Hollow Circle around target piece */}
-                {isCapture && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      width: "54px",
-                      height: "54px",
-                      borderRadius: "50%",
-                      border: "5px solid rgba(0, 0, 0, 0.25)",
-                      boxSizing: "border-box",
-                      pointerEvents: "none",
-                      zIndex: 2,
-                    }}
-                  />
-                )}
-              </div>
-            )
-          })
-        )}
+      {/* Move History & Match Details */}
+      <div className="w-full max-w-sm h-[620px]">
+        <GameSidebar
+          gameId={gameId || ""}
+          whitePlayer={whitePlayer}
+          blackPlayer={blackPlayer}
+          playerColor={playerColor}
+          currentTurn={currentTurn}
+          moves={moveHistory}
+          onResign={handleResign}
+        />
       </div>
-      <div
-        style={{
-          padding: "8px 16px",
-        }}
-      >
-        <button
-          onClick={resetBoard}
-          style={{
-            backgroundColor: "red",
-            outline: "none",
-            color: "white",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "24px",
-          }}
-        >
-          Reset
-        </button>
-      </div>
-      <p>Click a piece, then click a target square to execute a move!</p>
+
+      {/* Game Over Popup */}
+      {gameOverData && (
+        <GameOverDialog
+          open={!!gameOverData}
+          result={gameOverData.result}
+          reason={gameOverData.reason}
+          playerColor={playerColor}
+        />
+      )}
     </div>
-  )
-}
+  );
+};

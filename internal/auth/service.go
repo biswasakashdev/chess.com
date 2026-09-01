@@ -35,9 +35,12 @@ func NewAuthService(userRepo users.UserRepository, jwtSecret string, accessToken
 }
 
 // Register creates a new user with the provided credentials
-func (s *AuthService) Register(username, password, firstName, lastName string) (*users.User, error) {
+func (s *AuthService) Register(ctx context.Context, username, password, firstName, lastName string) (*users.User, error) {
+
+	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
+	defer cancel()
 	// Check if user already exists
-	isExist, err := s.userRepo.IsUsernameExits(username)
+	isExist, err := s.userRepo.IsUsernameExits(newCtx, username)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
@@ -62,12 +65,12 @@ func (s *AuthService) Register(username, password, firstName, lastName string) (
 }
 
 // Login authenticates a user and returns an access token
-func (s *AuthService) Login(username, password string, ctx context.Context) (string, error) {
+func (s *AuthService) Login(ctx context.Context, username, password string) (string, error) {
 
 	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	// Get the user from the database
-	user, err := s.userRepo.FindByUsername(username, newCtx)
+	user, err := s.userRepo.FindByUsername(newCtx, username)
 	if err != nil {
 		return "", ErrInvalidCredentials
 	}

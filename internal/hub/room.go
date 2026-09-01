@@ -65,15 +65,13 @@ func (r *GameRoom) Run() {
 
 			// Broadcast move to both players
 			r.broadcast(EventMoveMade, MoveMadePayload{
-				GameID: r.ID,
-				Move:   action.MoveUCI,
-				FEN:    fen,
+				Move: action.MoveUCI,
+				FEN:  fen,
 			})
 
 			// Check for game completion
 			if outcome != chess.NoOutCome {
 				payload := GameOverPayload{
-					GameID: r.ID,
 					Reason: "Win",
 				}
 				if outcome == chess.BlackWin {

@@ -1,20 +1,24 @@
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"log"
+	"os"
+)
 
 func InitSchema(db *sql.DB) error {
-	query := `
-	CREATE TABLE IF NOT EXISTS users (
-		id TEXT PRIMARY KEY,
-		first_name TEXT NOT NULL,
-		last_name TEXT NOT NULL,
-		username TEXT NOT NULL UNIQUE,
-		hashed_password TEXT NOT NULL,
-		created_at DATETIME NOT NULL
-	);
-	`
 
-	_, err := db.Exec(query)
+	// Read SQL file
+	script, err := os.ReadFile("scripts/sql/schema.sql")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Execute SQL
+	_, err = db.Exec(string(script))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return err
 }

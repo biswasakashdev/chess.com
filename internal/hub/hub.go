@@ -2,7 +2,6 @@ package hub
 
 import (
 	"encoding/json"
-	"log"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -23,6 +22,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type Hub struct {
+	// Ws ticket authentication
 	ticketService *ticket.TicketService
 	// Online clients
 	clients map[string]*Client
@@ -47,51 +47,6 @@ func NewHub(ticketService *ticket.TicketService) *Hub {
 	}
 }
 
-func (h *Hub) WsHandle(w http.ResponseWriter, r *http.Request) {
-	queryParams := r.URL.Query()
-
-	var userID string
-
-	hasTicket := queryParams.Has("ticket")
-	if hasTicket {
-		ticket := queryParams.Get("ticket")
-		val, err := h.ticketService.GetTicket(ticket)
-		if err != nil {
-			w.Header().Add("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
-				"message": "Invalid token",
-			})
-			return
-		}
-		userID = val
-		h.ticketService.DeleteTicket(ticket)
-	} else {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"message": "Invalid token",
-		})
-		return
-	}
-
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println("Upgrade failed:", err)
-		return
-	}
-
-	client := &Client{
-		Hub:    h,
-		Conn:   conn,
-		UserID: userID,
-		Send:   make(chan []byte, 256),
-	}
-
-	h.Register <- client
-
-	go client.WritePump()
-	go client.ReadPump()
-}
-
 func (h *Hub) Run() {
 	for {
 		select {
@@ -111,6 +66,22 @@ func (h *Hub) Run() {
 			h.broadcastPresence()
 		}
 	}
+}
+
+func (h *Hub) GetActiveClients() map[string]struct{} {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	activeUserList := make(map[string]struct{})
+	for ids := range h.clients {
+		activeUserList[ids] = struct{}{}
+	}
+
+	return activeUserList
+}
+
+func (h *Hub) SendFriendNotification() {
+
 }
 
 func (h *Hub) broadcastPresence() {
@@ -134,6 +105,14 @@ func (h *Hub) broadcastPresence() {
 	h.mu.RUnlock()
 }
 
+/*
+ ** Handle user created events
+ * - Send a challenge
+ * - Accept a challenge
+ * - Made a move
+ * - Select a piece
+ * - Send a friend request
+ */
 func (h *Hub) RouteEvent(client *Client, event Event) {
 	switch event.Type {
 	case EventChallengeReq:
@@ -159,7 +138,14 @@ func (h *Hub) RouteEvent(client *Client, event Event) {
 			return
 		}
 		h.handleMove(client.UserID, payload)
+	case EventSelectPiece:
+		var payload SelectPiecePayload
+		if err := json.Unmarshal(event.Payload, &payload); err != nil {
+			client.SendError("Bad payload")
+		}
+		h.handleSelectPiece(payload)
 	}
+
 }
 
 func (h *Hub) handleChallenge(fromID, toID string) {
@@ -208,7 +194,6 @@ func (h *Hub) handleAcceptChallenge(fromID, toID string) {
 		GameID:      gameID,
 		WhitePlayer: white.UserID,
 		BlackPlayer: black.UserID,
-		YourColor:   "white",
 	})
 	white.Send <- formatEvent(EventGameStart, wPayload)
 
@@ -217,8 +202,8 @@ func (h *Hub) handleAcceptChallenge(fromID, toID string) {
 		GameID:      gameID,
 		WhitePlayer: white.UserID,
 		BlackPlayer: black.UserID,
-		YourColor:   "black",
 	})
+
 	black.Send <- formatEvent(EventGameStart, bPayload)
 }
 
@@ -236,6 +221,10 @@ func (h *Hub) handleMove(playerID string, payload MovePayload) {
 		PlayerID: playerID,
 		MoveUCI:  payload.Move,
 	}
+}
+
+func (h *Hub) handleSelectPiece(payload SelectPiecePayload) {
+
 }
 
 func (h *Hub) sendErrorTo(userID, message string) {

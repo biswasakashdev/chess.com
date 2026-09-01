@@ -1,29 +1,31 @@
 import useAuthContext from "@/context/auth.context"
 import {
-  ChessSocketContext,
+  GameSocketContext,
   type EventHandler,
   type EventType,
   type InternalHandler,
   type SocketEnvelope,
   type SocketEventMap,
-} from "@/context/chess.context"
+} from "@/context/game.context"
+import useUserContext from "@/context/user.context"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
+
+
+const WS_ADDR = import.meta.env.VITE_SERVER_URL || ""
 
 export interface ChessSocketProviderProps {
   children: ReactNode
-  userId: string
-  serverUrl?: string // e.g. "ws://localhost:8080"
 }
 
-export const ChessSocketProvider = ({
+export const GameSocketProvider = ({
   children,
-  userId,
-  serverUrl = "ws://localhost:8080",
 }: ChessSocketProviderProps) => {
 
-  const {client} = useAuthContext()
+
+  const { client } = useAuthContext()
+  const { user } = useUserContext()
+  const userId = user.id
   const [isConnected, setIsConnected] = useState<boolean>(false)
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -100,7 +102,7 @@ export const ChessSocketProvider = ({
         if (!isMounted) return
 
         // 2. Connect using the one-time ticket
-        const wsUrl = `${serverUrl}/ws?ticket=${encodeURIComponent(ticket)}`
+        const wsUrl = `ws://${WS_ADDR}/ws?ticket=${encodeURIComponent(ticket)}`
         ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
@@ -123,9 +125,6 @@ export const ChessSocketProvider = ({
             const envelope: SocketEnvelope = JSON.parse(messageEvent.data)
             const { type, payload } = envelope
 
-            if (type === "presence" && Array.isArray(payload)) {
-              setOnlineUsers(payload)
-            }
 
             const handlers = listenersRef.current.get(type)
             if (handlers) {
@@ -157,13 +156,12 @@ export const ChessSocketProvider = ({
       }
       wsRef.current = null
     }
-  }, [userId, serverUrl, client])
+  }, [userId, client])
 
   return (
-    <ChessSocketContext.Provider
+    <GameSocketContext.Provider
       value={{
         isConnected,
-        onlineUsers,
         send,
         sendChallenge,
         acceptChallenge,
@@ -172,6 +170,6 @@ export const ChessSocketProvider = ({
       }}
     >
       {children}
-    </ChessSocketContext.Provider>
+    </GameSocketContext.Provider>
   )
 }

@@ -1,0 +1,149 @@
+import { createContext, useContext, useEffect, useRef } from "react"
+
+export type PlayerStatus = "online" | "idle"
+
+export interface PresencePayload {
+  userId: string
+  username: string
+  rating: number
+  firstName: string
+  lastName: string
+  status: PlayerStatus
+}
+
+export interface PlayerStatusPayload {
+  userId: string
+  status: PlayerStatus
+}
+
+export interface ChallengeRequestPayload {
+  to_user_id: string
+  from_user_id?: string
+}
+
+export interface ChallengeAcceptPayload {
+  from_user_id: string
+  to_user_id?: string
+}
+
+export interface GameStartPayload {
+  game_id: string
+  white_player: string
+  black_player: string
+}
+
+export interface SelectPiecePayload {
+  piece: string
+}
+
+export interface MakeMovePayload {
+  game_id: string
+  move: string
+}
+
+export interface MoveMadePayload {
+  game_id: string
+  move: string
+  fen: string
+}
+
+export interface GameOverPayload {
+  game_id: string
+  result: "WhiteWins" | "BlackWins" | "NoOutCome" | string
+  reason: string
+}
+
+export interface ErrorPayload {
+  message: string
+}
+
+export interface AvailableMovesPayload {
+  forUserId: string
+  moves: string[]
+}
+
+// Map mapping Event Names -> Payload Types
+export interface SocketEventMap {
+  // Client events
+  make_move: MakeMovePayload
+  challenge_request: ChallengeRequestPayload
+  challenge_accept: ChallengeAcceptPayload
+  select_piece: SelectPiecePayload
+
+  // Server event
+  move_made: MoveMadePayload
+  game_start: GameStartPayload
+  presence_friends: PresencePayload[]
+  presence: PresencePayload
+  player_status: PlayerStatusPayload
+  game_over: GameOverPayload
+  available_moves: AvailableMovesPayload
+  error: ErrorPayload
+}
+
+export type EventType = keyof SocketEventMap
+
+export interface SocketEnvelope<K extends EventType = EventType> {
+  type: K
+  payload: SocketEventMap[K]
+}
+
+export type InternalHandler = (payload: unknown) => void
+
+export type EventHandler<T extends EventType> = (
+  payload: SocketEventMap[T]
+) => void
+
+// --- Context Type Definition ---
+export interface ChessSocketContextType {
+  isConnected: boolean
+  send: <K extends EventType>(type: K, payload: SocketEventMap[K]) => void
+  sendChallenge: (toUserId: string) => void
+  acceptChallenge: (fromUserId: string) => void
+  sendMove: (gameId: string, move: string) => void
+  subscribe: <K extends EventType>(
+    event: K,
+    handler: EventHandler<K>
+  ) => () => void
+}
+
+export const GameSocketContext = createContext<ChessSocketContextType | null>(
+  null
+)
+
+// --- Custom Hooks ---
+
+export const useChessSocket = (): ChessSocketContextType => {
+  const context = useContext(GameSocketContext)
+  if (!context) {
+    throw new Error("useChessSocket must be used within a ChessSocketProvider")
+  }
+  return context
+}
+
+// 2. Specialized hook to subscribe to any socket event with automatic cleanup
+// Automatic payload inference based on the passed EventType
+export const useSocketEvent = <K extends EventType>(
+  event: K,
+  handler: EventHandler<K>
+): void => {
+  const { subscribe } = useChessSocket()
+  const handlerRef = useRef<EventHandler<K>>(handler)
+
+  useEffect(() => {
+    handlerRef.current = handler
+  }, [handler])
+
+  useEffect(() => {
+    const callback: EventHandler<K> = (data) => {
+      if (handlerRef.current) {
+        handlerRef.current(data)
+      }
+    }
+
+    const unsubscribe = subscribe(event, callback)
+    return () => {
+      unsubscribe()
+    }
+  }, [event, subscribe])
+}

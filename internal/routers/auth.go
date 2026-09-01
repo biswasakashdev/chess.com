@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/biswasakashdev/chess.com/internal/auth"
 	"github.com/go-chi/chi/v5"
@@ -47,7 +49,10 @@ func (ah *authHandler) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := ah.authServ.Register(req.Username, req.Password, req.FirstName, req.LastName)
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
+
+	user, err := ah.authServ.Register(ctx, req.Username, req.Password, req.FirstName, req.LastName)
 
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -80,9 +85,10 @@ func (ah *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
+	ctx, cancel := context.WithTimeout(r.Context(), time.Second*3)
+	defer cancel()
 
-	authToken, err := ah.authServ.Login(req.Username, req.Password, ctx)
+	authToken, err := ah.authServ.Login(ctx, req.Username, req.Password)
 
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {

@@ -8,7 +8,7 @@ import (
 )
 
 func Connect() *sql.DB {
-	db, err := sql.Open("sqlite", "./app.db")
+	db, err := sql.Open("sqlite", "app.db?_foreign_keys=on")
 	if err != nil {
 		log.Fatal(err)
 	}

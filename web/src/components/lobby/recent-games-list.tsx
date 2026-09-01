@@ -1,16 +1,14 @@
-import React from "react"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ExternalLink } from "lucide-react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import React from "react"
 
 interface RecentGame {
   id: string
@@ -67,7 +65,6 @@ export const RecentGamesTable: React.FC = () => {
               <TableHead>Mode</TableHead>
               <TableHead>Moves</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Analysis</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -92,11 +89,7 @@ export const RecentGamesTable: React.FC = () => {
                 <TableCell className="text-sm text-muted-foreground">
                   {game.date}
                 </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+
               </TableRow>
             ))}
           </TableBody>

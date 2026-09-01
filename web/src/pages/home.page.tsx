@@ -1,4 +1,6 @@
 import { Navbar } from "@/components/home/navbar"
+import { Toaster } from "@/components/ui/sonner"
+import { GameSocketProvider } from "@/context-provider/game.provider"
 import useAuthContext from "@/context/auth.context"
 import { UserContext } from "@/context/user.context"
 import type { User } from "@/types/user.types"
@@ -19,15 +21,12 @@ export default function HomePage() {
 
       const res = await client.get("/api/v1/users")
 
-      if (res.status === 401) {
+      if (res.status !== 200) {
         updateAuthorization(undefined)
         navigate("/auth")
         return
       }
 
-      if (res.status !== 200) {
-        console.error("Failed to fetch the user.")
-      }
       setUser(res.data)
     }
     fetchUser()
@@ -43,10 +42,14 @@ export default function HomePage() {
         user: user,
       }}
     >
+      <GameSocketProvider>
+
       <div className="flex min-h-screen flex-col bg-background text-foreground">
         <Navbar />
         <Outlet />
       </div>
+      <Toaster/>
+      </GameSocketProvider>
     </UserContext.Provider>
   )
 }
