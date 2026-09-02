@@ -18,11 +18,11 @@ func BuildErrResponseWithCode(w http.ResponseWriter, err error, code int) {
 }
 
 func BuildResponseWithBody(w http.ResponseWriter, body any) {
-	BuildResponseWithBodyAndCode(w, body, http.StatusOK)
+	BuildResponseBodyWithCode(w, body, http.StatusOK)
 }
 
-func BuildResponseWithBodyAndCode(w http.ResponseWriter, body any, code int) {
+func BuildResponseBodyWithCode(w http.ResponseWriter, body any, code int) {
+	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(body)
-	w.WriteHeader(code)
 }

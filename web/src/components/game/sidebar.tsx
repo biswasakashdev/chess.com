@@ -86,7 +86,7 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
           <span>White</span>
           <span>Black</span>
         </div>
-        <ScrollArea className="h-[320px] px-4">
+        <ScrollArea className="h-80 px-4">
           {moves.length === 0 ? (
             <div className="flex items-center justify-center h-48 text-xs text-muted-foreground">
               No moves played yet

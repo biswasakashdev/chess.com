@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { getCapitalise } from "@/utils/user-utils"
 import { Circle, Swords, UserPlus } from "lucide-react"
 
 export interface UserRowProps {
@@ -7,27 +8,26 @@ export interface UserRowProps {
   lastName: string
   username: string
   id: string
-  status?: "online" | "in-game" | "idle"
   rating?: number
   challenge?: boolean
+  isActive?: boolean
+  sendRequestHandler?: () => void
 }
 
 export const UserRow = ({
+  id,
   firstName,
   lastName,
   username,
   rating,
-  status,
+  isActive,
   challenge = false,
+  sendRequestHandler,
 }: UserRowProps) => {
-  const fullName = firstName+" "+ lastName
-  const sendChallengeHandler = () => {
-    // Send challenge
-  }
+  const fullName = getCapitalise(firstName, lastName)
 
-  const sendRequestHandler = () => {
-    // Send request
-  }
+  const sendchallengehandler = (userId: string) => {}
+
   return (
     <div className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent">
       <div className="flex items-center space-x-3">
@@ -37,23 +37,18 @@ export const UserRow = ({
               <span>{firstName[0] + lastName[0]}</span>
             </AvatarFallback>
           </Avatar>
-          {status && (
-            <Circle
-              className={`absolute right-0 bottom-0 h-2.5 w-2.5 fill-current ${
-                status === "online"
-                  ? "text-emerald-500"
-                  : status === "in-game"
-                    ? "text-amber-500"
-                    : "text-muted-foreground"
-              }`}
-            />
-          )}
+
+          <Circle
+            className={`absolute right-0 bottom-0 h-2.5 w-2.5 fill-current ${
+              isActive ? "text-emerald-500" : "text-muted-foreground"
+            }`}
+          />
         </div>
 
         <div>
           <div className="text-xs font-semibold">{fullName}</div>
           <div className="text-[11px] text-muted-foreground">
-            {username} • {rating} • {status && <span> {status}</span>}
+            @{username} {rating && <span>• {rating}</span>}{" "}
           </div>
         </div>
       </div>
@@ -64,7 +59,7 @@ export const UserRow = ({
             size="icon"
             className="h-7 w-7"
             title="Challenge"
-            onClick={sendChallengeHandler}
+            onClick={() => sendchallengehandler(id)}
           >
             <Swords className="h-3.5 w-3.5" />
           </Button>

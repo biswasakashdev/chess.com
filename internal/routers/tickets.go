@@ -1,4 +1,4 @@
-package handlers
+package routers
 
 import (
 	"errors"
@@ -41,7 +41,7 @@ func (th *ticketsHandler) CreateTicket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.BuildResponseWithBodyAndCode(w, map[string]string{
+	util.BuildResponseBodyWithCode(w, map[string]string{
 		"ticket": tkt,
 	}, http.StatusCreated)
 }

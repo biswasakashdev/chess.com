@@ -75,12 +75,15 @@ func (c *Client) WritePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			if _, err := w.Write(message); err != nil {
+				return
+			}
 
-			// Drain queued messages
-			for data := range c.Send {
+			// Drain ONLY queued messages without blocking
+			n := len(c.Send)
+			for range n {
 				w.Write([]byte{'\n'})
-				w.Write(data)
+				w.Write(<-c.Send)
 			}
 
 			if err := w.Close(); err != nil {

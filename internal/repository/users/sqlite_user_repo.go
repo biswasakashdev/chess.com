@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	mdls "github.com/biswasakashdev/chess.com/internal/models"
 	"github.com/google/uuid"
 )
 
@@ -36,13 +37,13 @@ func (ur *SQLiteUserRepository) IsUsernameExits(ctx context.Context, username st
 	return isExists, nil
 }
 
-func (ur *SQLiteUserRepository) FindByUsername(ctx context.Context, username string) (*User, error) {
+func (ur *SQLiteUserRepository) FindByUsername(ctx context.Context, username string) (*mdls.User, error) {
 
 	query := `
 		SELECT id, username, hashed_password, first_name, last_name, created_at from users where username = $1;
 	`
 
-	var user User
+	var user mdls.User
 
 	err := ur.db.QueryRowContext(ctx, query, username).Scan(
 		&user.Id,
@@ -60,8 +61,8 @@ func (ur *SQLiteUserRepository) FindByUsername(ctx context.Context, username str
 	return &user, nil
 }
 
-func (ur *SQLiteUserRepository) CreateUser(username, hashedPassword, firstName, lastName string) (*User, error) {
-	user := &User{
+func (ur *SQLiteUserRepository) CreateUser(username, hashedPassword, firstName, lastName string) (*mdls.User, error) {
+	user := &mdls.User{
 		Id:             uuid.New(),
 		Username:       username,
 		HashedPassword: hashedPassword,
@@ -80,13 +81,13 @@ func (ur *SQLiteUserRepository) CreateUser(username, hashedPassword, firstName, 
 	return user, nil
 }
 
-func (ur *SQLiteUserRepository) FindById(ctx context.Context, id string) (*User, error) {
+func (ur *SQLiteUserRepository) FindById(ctx context.Context, id string) (*mdls.User, error) {
 
 	query := `
 			SELECT id, username, hashed_password, first_name, last_name, created_at from users where id=$1;
 		`
 
-	var user User
+	var user mdls.User
 
 	err := ur.db.QueryRowContext(ctx, query, id).Scan(
 		&user.Id,
@@ -106,7 +107,7 @@ func (ur *SQLiteUserRepository) FindById(ctx context.Context, id string) (*User,
 }
 
 // GetFriendsByUserID retrieves all accepted friends for a given user ID.
-func (ur *SQLiteUserRepository) FindFriendsByUserId(ctx context.Context, userId string) ([]*UserPayload, error) {
+func (ur *SQLiteUserRepository) FindFriendsByUserId(ctx context.Context, userId string) ([]*UserDTO, error) {
 	// Query searches both directions (user_id -> friend_id OR friend_id -> user_id)
 	query := `
 		SELECT
@@ -128,9 +129,9 @@ func (ur *SQLiteUserRepository) FindFriendsByUserId(ctx context.Context, userId 
 	}
 	defer rows.Close()
 
-	var friends []*UserPayload
+	var friends []*UserDTO
 	for rows.Next() {
-		var userPlayload UserPayload
+		var userPlayload UserDTO
 		if err := rows.Scan(&userPlayload.Id, &userPlayload.Username, &userPlayload.FirstName, &userPlayload.LastName, &userPlayload.Rating); err != nil {
 
 			return nil, fmt.Errorf("failed to scan friend row: %w", err)
@@ -145,7 +146,7 @@ func (ur *SQLiteUserRepository) FindFriendsByUserId(ctx context.Context, userId 
 	return friends, nil
 }
 
-func (ur *SQLiteUserRepository) FindByUsernameNotFriendsWith(ctx context.Context, userId, username string) ([]*UserPayload, error) {
+func (ur *SQLiteUserRepository) FindByUsernameNotFriendsWith(ctx context.Context, userId, username string) ([]*UserDTO, error) {
 	query := `
 			SELECT
 				u.id,
@@ -174,9 +175,9 @@ func (ur *SQLiteUserRepository) FindByUsernameNotFriendsWith(ctx context.Context
 	}
 	defer rows.Close()
 
-	var users []*UserPayload
+	var users []*UserDTO
 	for rows.Next() {
-		user := &UserPayload{}
+		user := &UserDTO{}
 		if err := rows.Scan(&user.Id, &user.Username, &user.FirstName, &user.LastName, &user.Rating); err != nil {
 			return nil, fmt.Errorf("failed to scan user row: %w", err)
 		}
@@ -223,7 +224,7 @@ func (ur *SQLiteUserRepository) SendFriendRequest(ctx context.Context, userId, t
 }
 
 // FindRequestsByUserId retrieves all users who have sent a pending friend request TO userId (Incoming Requests).
-func (ur *SQLiteUserRepository) FindRequestsByUserId(ctx context.Context, userId string) ([]*UserPayload, error) {
+func (ur *SQLiteUserRepository) FindRequestsByUserId(ctx context.Context, userId string) ([]*UserDTO, error) {
 	query := `
 		SELECT
 			u.id,
@@ -244,9 +245,9 @@ func (ur *SQLiteUserRepository) FindRequestsByUserId(ctx context.Context, userId
 	}
 	defer rows.Close()
 
-	var requests []*UserPayload
+	var requests []*UserDTO
 	for rows.Next() {
-		user := &UserPayload{}
+		user := &UserDTO{}
 		if err := rows.Scan(&user.Id, &user.Username, &user.FirstName, &user.LastName, &user.Rating); err != nil {
 			return nil, fmt.Errorf("failed to scan incoming request user row: %w", err)
 		}
@@ -260,8 +261,8 @@ func (ur *SQLiteUserRepository) FindRequestsByUserId(ctx context.Context, userId
 	return requests, nil
 }
 
-// FindRequestsSentByUserId retrieves all users to whom userId has sent a pending friend request (Outgoing Requests).
-func (ur *SQLiteUserRepository) FindRequestsSentByUserId(ctx context.Context, userId string) ([]*UserPayload, error) {
+// FindRequestsSentByUserId retrieves all users to whom userId has sent a request (Outgoing Requests).
+func (ur *SQLiteUserRepository) FindRequestsSentByUserId(ctx context.Context, userId string) ([]*UserDTO, error) {
 	query := `
 		SELECT
 			u.id,
@@ -282,9 +283,9 @@ func (ur *SQLiteUserRepository) FindRequestsSentByUserId(ctx context.Context, us
 	}
 	defer rows.Close()
 
-	var sentRequests []*UserPayload
+	var sentRequests []*UserDTO
 	for rows.Next() {
-		user := &UserPayload{}
+		user := &UserDTO{}
 		if err := rows.Scan(&user.Id, &user.Username, &user.FirstName, &user.LastName, &user.Rating); err != nil {
 			return nil, fmt.Errorf("failed to scan outgoing request user row: %w", err)
 		}
@@ -304,7 +305,7 @@ var (
 
 // UpdateRequestStatus updates the friendship status (e.g., 'accepted', 'blocked').
 // userId is the recipient acting on the request, targetUserId is the user who sent/holds the other end.
-func (ur *SQLiteUserRepository) UpdateRequestStatus(ctx context.Context, userId, targetUserId, reqStatus string) error {
+func (ur *SQLiteUserRepository) UpdateRequestStatus(ctx context.Context, userId, targetUserId string, status FriendshipStatus) error {
 	query := `
 		UPDATE friendships
 		SET status = ?
@@ -312,7 +313,7 @@ func (ur *SQLiteUserRepository) UpdateRequestStatus(ctx context.Context, userId,
 		   OR (user_id = ? AND friend_id = ?)
 	`
 
-	res, err := ur.db.ExecContext(ctx, query, reqStatus, targetUserId, userId, userId, targetUserId)
+	res, err := ur.db.ExecContext(ctx, query, status, targetUserId, userId, userId, targetUserId)
 	if err != nil {
 		return fmt.Errorf("failed to update request status: %w", err)
 	}
@@ -330,7 +331,7 @@ func (ur *SQLiteUserRepository) UpdateRequestStatus(ctx context.Context, userId,
 }
 
 // DeleteRequest removes the friendship entry (used for rejecting requests, canceling sent requests, or unfriending).
-func (ur *SQLiteUserRepository) DeleteRequest(ctx context.Context, userId, targetUserId string) error {
+func (ur *SQLiteUserRepository) DeleteFriendship(ctx context.Context, userId, targetUserId string) error {
 	query := `
 		DELETE FROM friendships
 		WHERE (user_id = ? AND friend_id = ?)

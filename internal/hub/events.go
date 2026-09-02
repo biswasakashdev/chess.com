@@ -1,6 +1,10 @@
 package hub
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/biswasakashdev/chess.com/internal/dtos"
+)
 
 type EventType string
 
@@ -74,4 +78,17 @@ type SelectPiecePayload struct {
 type AvailableMovesPayload struct {
 	ForUserId string   `json:"forUserId"`
 	Moves     []string `json:"moves"`
+}
+
+type PresenceType string
+
+var (
+	PresenceTypeAddUser    PresenceType = "add_user"
+	PresenceTypeRemoveUser PresenceType = "remove_user"
+)
+
+type PresencePayload struct {
+	PresenceType PresenceType     `json:"presence_type"`
+	RemoveUserId string           `json:"remove_user_id,omitempty"`
+	UserData     dtos.UserPayload `json:"user_data"`
 }

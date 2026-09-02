@@ -1,6 +1,6 @@
 import App from "@/App"
 import AuthPage from "@/pages/auth.page"
-import GamePage from "@/pages/game.page"
+import {GamePage} from "@/pages/game.page"
 import { createBrowserRouter, Navigate } from "react-router"
 import LobbyPage from "./pages/lobby.page"
 import HomePage from "@/pages/home.page"

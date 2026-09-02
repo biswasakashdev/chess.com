@@ -6,7 +6,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/biswasakashdev/chess.com/internal/users"
+	users "github.com/biswasakashdev/chess.com/internal/models"
+	userRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -20,13 +21,13 @@ var (
 
 // AuthService provides authentication functionality
 type AuthService struct {
-	userRepo       users.UserRepository
+	userRepo       userRepo.UserRepository
 	jwtSecret      []byte
 	accessTokenTTL time.Duration
 }
 
 // NewAuthService creates a new authentication service
-func NewAuthService(userRepo users.UserRepository, jwtSecret string, accessTokenTTL time.Duration) *AuthService {
+func NewAuthService(userRepo userRepo.UserRepository, jwtSecret string, accessTokenTTL time.Duration) *AuthService {
 	return &AuthService{
 		userRepo:       userRepo,
 		jwtSecret:      []byte(jwtSecret),

@@ -1,12 +1,15 @@
 package hub
 
 import (
+	"context"
 	"encoding/json"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/biswasakashdev/chess.com/internal/dtos"
+	usersRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -22,6 +25,7 @@ var upgrader = websocket.Upgrader{
 }
 
 type Hub struct {
+	userRepo usersRepo.UserRepository
 	// Ws ticket authentication
 	ticketService *ticket.TicketService
 	// Online clients
@@ -36,8 +40,9 @@ type Hub struct {
 	rng        *rand.Rand
 }
 
-func NewHub(ticketService *ticket.TicketService) *Hub {
+func NewHub(ticketService *ticket.TicketService, userRepo usersRepo.UserRepository) *Hub {
 	return &Hub{
+		userRepo:      userRepo,
 		ticketService: ticketService,
 		clients:       make(map[string]*Client),
 		rooms:         make(map[string]*GameRoom),
@@ -54,7 +59,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			h.clients[client.UserID] = client
 			h.mu.Unlock()
-			h.broadcastPresence()
+			h.broadcastPresence(client.UserID, true)
 
 		case client := <-h.Unregister:
 			h.mu.Lock()
@@ -63,7 +68,7 @@ func (h *Hub) Run() {
 				close(client.Send)
 			}
 			h.mu.Unlock()
-			h.broadcastPresence()
+			h.broadcastPresence(client.UserID, false)
 		}
 	}
 }
@@ -84,22 +89,75 @@ func (h *Hub) SendFriendNotification() {
 
 }
 
-func (h *Hub) broadcastPresence() {
+func (h *Hub) broadcastPresence(userId string, presenseTypeRegister bool) {
 	h.mu.RLock()
-	var onlineUsers []string
+	onlineUsers := make(map[string]struct{})
 	for id := range h.clients {
-		onlineUsers = append(onlineUsers, id)
+		onlineUsers[id] = struct{}{}
 	}
 	h.mu.RUnlock()
 
-	payload, _ := json.Marshal(onlineUsers)
+	ctx := context.Background()
+
+	userFriendsList, err := h.userRepo.FindFriendsByUserId(ctx, userId)
+
+	if err != nil {
+		return
+	}
+
+	userOnlineFriends := make([]*usersRepo.UserDTO, 0, 20)
+	for _, val := range userFriendsList {
+		if _, ok := onlineUsers[val.Id]; ok {
+			userOnlineFriends = append(userOnlineFriends, val)
+		}
+	}
+
+	var payload []byte
+
+	if presenseTypeRegister {
+		ctx = context.Background()
+
+		userData, err := h.userRepo.FindById(ctx, userId)
+		if err != nil {
+			return
+		}
+
+		userPayload, _ := json.Marshal(PresencePayload{
+			PresenceType: PresenceTypeAddUser,
+			UserData: dtos.UserPayload{
+				Id:        userData.Id.String(),
+				Username:  userData.Username,
+				FirstName: userData.FirstName,
+				LastName:  userData.LastName,
+				Rating:    userData.Rating,
+			},
+		})
+
+		payload = userPayload
+	} else {
+		userPayload, _ := json.Marshal(PresencePayload{
+			PresenceType: PresenceTypeRemoveUser,
+			RemoveUserId: userId,
+		})
+
+		payload = userPayload
+	}
+
 	msg, _ := json.Marshal(Event{Type: EventPresence, Payload: payload})
 
 	h.mu.RLock()
-	for _, client := range h.clients {
+	for _, client := range userOnlineFriends {
+		clConn, ok := h.clients[client.Id]
+		if !ok {
+			continue
+		}
+
+		// Non-blocking send or slow-client eviction
 		select {
-		case client.Send <- msg:
+		case clConn.Send <- msg:
 		default:
+			// Slow client: buffer full. Close connection or drop message
+			// to avoid locking up other goroutines.
 		}
 	}
 	h.mu.RUnlock()

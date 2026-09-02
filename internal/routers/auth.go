@@ -1,4 +1,4 @@
-package handlers
+package routers
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/biswasakashdev/chess.com/internal/auth"
+	"github.com/biswasakashdev/chess.com/internal/dtos"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -27,23 +28,9 @@ func NewAuthRouter(authService *auth.AuthService) chi.Router {
 	return router
 }
 
-type RegisterRequest struct {
-	Username  string `json:"username"`
-	Password  string `json:"password"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-}
-
-type RegisterResponse struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-}
-
 func (ah *authHandler) register(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
-	var req RegisterRequest
+	var req dtos.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
@@ -68,18 +55,9 @@ func (ah *authHandler) register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type LoginResponse struct {
-	Token string `json:"token"`
-}
-
 func (ah *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	// Parse the request body
-	var req LoginRequest
+	var req dtos.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
@@ -99,7 +77,7 @@ func (ah *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := LoginResponse{
+	response := dtos.LoginResponse{
 		Token: authToken,
 	}
 	w.Header().Set("Content-Type", "application/json")

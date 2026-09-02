@@ -1,5 +1,5 @@
 import React from "react";
-import { getPieceImageUrl, serverPieceToPieceCode } from "./pieceUtils";
+import { getPieceImageUrl } from "@/lib/game/pieces";
 
 interface ChessBoardProps {
   board: string[][]; // 8x8 array of characters
@@ -37,8 +37,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             // Map rank & file back to original 0-indexed [r][c] board matrix
             const r = 8 - parseInt(rank, 10);
             const c = file.charCodeAt(0) - 97;
-            const pieceChar = board[r]?.[c] || ".";
-            const pieceCode = serverPieceToPieceCode(pieceChar);
+            const pieceCode = board[r]?.[c] || ".";
 
             const isLightSquare = (r + c) % 2 === 0;
             const isSelected = selectedSquare === square;

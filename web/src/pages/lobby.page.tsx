@@ -3,6 +3,7 @@ import { IncomingChallengeToast } from "@/components/lobby/incoming-challenge"
 import {ActiveUsersSection} from "@/components/lobby/active-users"
 import { RecentGamesTable } from "@/components/lobby/recent-games-list"
 import { SocialSidebar } from "@/components/lobby/social-sidebar"
+import { FriendshipTabs } from "@/components/lobby/friendships"
 
 export const LobbyPage = () => {
 
@@ -23,7 +24,8 @@ export const LobbyPage = () => {
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <ActiveGamesList />
             <RecentGamesTable />
-            <ActiveUsersSection/>
+            <ActiveUsersSection />
+            <FriendshipTabs/>
           </div>
         </div>
 

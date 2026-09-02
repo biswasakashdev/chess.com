@@ -51,6 +51,8 @@ const mockGames: RecentGame[] = [
 ]
 
 export const RecentGamesTable: React.FC = () => {
+
+
   return (
     <Card>
       <CardHeader>

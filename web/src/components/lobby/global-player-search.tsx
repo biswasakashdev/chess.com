@@ -16,7 +16,23 @@ export const SearchPlayers = () => {
   const { client } = useAuthContext()
   const [query, setQuery] = useState("")
 
+  // Trigger rendering
+  const [updateState, setUpdateState] = useState({})
+
   const [users, setUsers] = useState<PlayerList[]>([])
+
+  const sendRequesthandler = async (userId: string) => {
+
+    const { status } = await client.post("/api/v1/friends", {
+      target_user_id: userId,
+    })
+
+
+    if (status === 201) {
+      setUpdateState({})
+    }
+  }
+
 
   useEffect(() => {
     if (query.length < 3) {
@@ -40,7 +56,7 @@ export const SearchPlayers = () => {
     return () => {
       clearTimeout(timeOut)
     }
-  }, [query, client])
+  }, [query, client,updateState])
 
   return (
     <div className="space-y-4">
@@ -54,8 +70,8 @@ export const SearchPlayers = () => {
         />
       </div>
 
-      {query.length > 1 && (
-        <div className="space-y-2 rounded-lg border bg-card p-2 shadow-sm">
+      {query.length > 2 && (
+        <div>
           {users.map((row) => {
             return (
               <UserRow
@@ -65,6 +81,7 @@ export const SearchPlayers = () => {
                 username={row.username}
                 rating={row.rating}
                 key={row.id}
+                sendRequestHandler={()=>sendRequesthandler(row.id)}
               />
             )
           })}

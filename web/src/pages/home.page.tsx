@@ -19,7 +19,7 @@ export default function HomePage() {
     const fetchUser = async () => {
       if (!authorization) navigate("/auth")
 
-      const res = await client.get("/api/v1/users")
+      const res = await client.get("/api/v1/users/profile")
 
       if (res.status !== 200) {
         updateAuthorization(undefined)

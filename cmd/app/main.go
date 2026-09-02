@@ -11,9 +11,10 @@ import (
 	"github.com/biswasakashdev/chess.com/internal/database"
 	"github.com/biswasakashdev/chess.com/internal/hub"
 	"github.com/biswasakashdev/chess.com/internal/middleware"
+	userRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	handlers "github.com/biswasakashdev/chess.com/internal/routers"
+	"github.com/biswasakashdev/chess.com/internal/service"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
-	"github.com/biswasakashdev/chess.com/internal/users"
 	"github.com/go-chi/chi/v5"
 	chiMiddle "github.com/go-chi/chi/v5/middleware"
 )
@@ -39,22 +40,23 @@ func main() {
 	router.Use(chiMiddle.Logger)
 
 	// Create Repositories
-	sqLiteUserRepo := users.NewSQLiteUserRepository(conn)
-
-	// Create Services
-
-	userService := users.NewUserService(sqLiteUserRepo)
-	authService := auth.NewAuthService(sqLiteUserRepo, config.JwtSecret, Day)
-	ticketService := ticket.NewTicketService()
-
-	// Initialise handlers
-	authRouter := handlers.NewAuthRouter(authService)
-	userRouter := handlers.NewUserRouter(userService)
-	ticketRouter := handlers.NewTicketRouter(ticketService)
+	sqLiteUserRepo := userRepo.NewSQLiteUserRepository(conn)
 
 	/* Initilise the Hub */
 
-	gameHub := hub.NewHub(ticketService)
+	// Create Services
+
+	userService := service.NewUserService(sqLiteUserRepo)
+	authService := auth.NewAuthService(sqLiteUserRepo, config.JwtSecret, Day)
+	ticketService := ticket.NewTicketService()
+	gameHub := hub.NewHub(ticketService, sqLiteUserRepo)
+	friendshipService := service.NewfriendshipService(sqLiteUserRepo, gameHub)
+
+	// Initialise routers
+	authRouter := handlers.NewAuthRouter(authService)
+	userRouter := handlers.NewUserRouter(userService)
+	friendshipRouter := handlers.NewFriendshipRouter(friendshipService)
+	ticketRouter := handlers.NewTicketRouter(ticketService)
 
 	// Start the background processing.
 	go gameHub.Run()
@@ -72,11 +74,12 @@ func main() {
 
 		r.Mount("/api/v1/users", userRouter)
 		r.Mount("/api/v1/tickets", ticketRouter)
+		r.Mount("/api/v1/friends", friendshipRouter)
 
 	})
 
 	// Ws Server
-	router.HandleFunc("/ws", gameHub.WsHandle)
+	router.HandleFunc("/api/ws", gameHub.WsHandle)
 
 	fmt.Printf("%s Server listening on %s port.", config.AppName, config.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", config.Port), router))

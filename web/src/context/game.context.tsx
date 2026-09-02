@@ -2,13 +2,17 @@ import { createContext, useContext, useEffect, useRef } from "react"
 
 export type PlayerStatus = "online" | "idle"
 
-export interface PresencePayload {
-  userId: string
+export interface UserPayload {
+  id: string
   username: string
   rating: number
   firstName: string
   lastName: string
-  status: PlayerStatus
+}
+export interface PresencePayload {
+  presence_type: "add_user" | "remove_user"
+  remove_user_id: undefined | null | string
+  user_data: undefined | null | UserPayload
 }
 
 export interface PlayerStatusPayload {
@@ -73,7 +77,6 @@ export interface SocketEventMap {
   // Server event
   move_made: MoveMadePayload
   game_start: GameStartPayload
-  presence_friends: PresencePayload[]
   presence: PresencePayload
   player_status: PlayerStatusPayload
   game_over: GameOverPayload

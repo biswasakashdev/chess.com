@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router";
+import { ChessBoard } from "@/components/game/chess-board";
+import { GameOverDialog } from "@/components/game/game-dialogue";
+import { GameSidebar, type MoveRecord } from "@/components/game/sidebar";
 import {
   useChessSocket,
   useSocketEvent,
-  type MoveMadePayload,
   type GameOverPayload,
+  type MoveMadePayload,
 } from "@/context/game.context";
-import { ChessBoard } from "@/components/game/chess-board";
-import { GameSidebar, type MoveRecord } from "@/components/game/sidebar";
-import { GameOverDialog } from "@/components/game/game-dialogue";
+import React, { useCallback, useState } from "react";
+import { useLocation, useParams } from "react-router";
 
 const INITIAL_BOARD = [
   ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -40,6 +40,46 @@ export const GamePage: React.FC = () => {
 
   const [gameOverData, setGameOverData] = useState<GameOverPayload | null>(null);
 
+  const parseBoardState = useCallback((rawBoard: string): string[][] => {
+    const emptyBoard = () =>
+      Array.from({ length: 8 }, () => Array(8).fill("."));
+
+    if (!rawBoard || typeof rawBoard !== "string") {
+      return emptyBoard();
+    }
+
+    // 1. Split into row strings, trimming trailing whitespace or carriage returns
+    const rawRows = rawBoard.trim().split(/\r?\n/);
+
+    if (rawRows.length !== 8) {
+      console.error(`Invalid board row count: expected 8, received ${rawRows.length}`);
+      return emptyBoard();
+    }
+
+    const parsedBoard: string[][] = [];
+
+    for (let r = 0; r < 8; r++) {
+      const rowStr = rawRows[r].trim();
+
+      // Check if the row is space-separated ("r n b q ...") or continuous ("rnbq...")
+      let cells: string[];
+      if (rowStr.includes(" ")) {
+        cells = rowStr.split(/\s+/);
+      } else {
+        cells = rowStr.split("");
+      }
+
+      if (cells.length !== 8) {
+        console.error(`Invalid column count at row ${r}: expected 8, received ${cells.length}`);
+        return emptyBoard();
+      }
+
+      parsedBoard.push(cells);
+    }
+
+    return parsedBoard;
+  }, [])
+
   // 1. Listen for move confirmations from server
   useSocketEvent("move_made", (data: MoveMadePayload) => {
     if (data.game_id !== gameId) return;
@@ -47,9 +87,6 @@ export const GamePage: React.FC = () => {
     const from = data.move.substring(0, 2);
     const to = data.move.substring(2, 4);
     setLastMove({ from, to });
-
-    // Parse FEN or execute local board update
-    applyMoveToLocalBoard(from, to);
 
     // Update move records
     setMoveHistory((prev) => {
@@ -68,6 +105,10 @@ export const GamePage: React.FC = () => {
     setCurrentTurn((t) => (t === "White" ? "Black" : "White"));
     setSelectedSquare(null);
     setAvailableMoves([]);
+
+    const newBoard = parseBoardState(data.fen);
+      setBoard(newBoard);
+
   });
 
   // 2. Listen for game over
@@ -77,20 +118,22 @@ export const GamePage: React.FC = () => {
     }
   });
 
-  const applyMoveToLocalBoard = (from: string, to: string) => {
-    const fromR = 8 - parseInt(from[1], 10);
-    const fromC = from.charCodeAt(0) - 97;
-    const toR = 8 - parseInt(to[1], 10);
-    const toC = to.charCodeAt(0) - 97;
+  // const applyMoveToLocalBoard = (from: string, to: string) => {
+  //   const fromR = 8 - parseInt(from[1], 10);
+  //   const fromC = from.charCodeAt(0) - 97;
+  //   const toR = 8 - parseInt(to[1], 10);
+  //   const toC = to.charCodeAt(0) - 97;
 
-    setBoard((prev) => {
-      const next = prev.map((row) => [...row]);
-      const piece = next[fromR][fromC];
-      next[toR][toC] = piece;
-      next[fromR][fromC] = ".";
-      return next;
-    });
-  };
+  //   setBoard((prev) => {
+  //     const next = prev.map((row) => [...row]);
+  //     const piece = next[fromR][fromC];
+  //     next[toR][toC] = piece;
+  //     next[fromR][fromC] = ".";
+  //     return next;
+  //   });
+  // };
+
+  // Parse FEN or execute local board update
 
   const handleSquareClick = (square: string) => {
     if (currentTurn !== playerColor || !gameId) return;

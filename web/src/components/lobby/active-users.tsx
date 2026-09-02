@@ -2,7 +2,10 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import useAuthContext from "@/context/auth.context"
-import type { PlayerStatus } from "@/context/game.context"
+import {
+  useSocketEvent,
+  type PresencePayload
+} from "@/context/game.context"
 import { ArrowUpRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import { UserRow } from "../user-row"
@@ -13,7 +16,6 @@ interface ActiveUser {
   firstName: string
   lastName: string
   rating: number
-  status: PlayerStatus
 }
 
 export function ActiveUsersSection() {
@@ -22,9 +24,9 @@ export function ActiveUsersSection() {
 
   useEffect(() => {
     const fetchOnlineUsers = async () => {
-      const res = await client.get("/api/v1/users", {
+      const res = await client.get("/api/v1/friends", {
         params: {
-          status: "online",
+          type: "online",
         },
       })
       if (res.status === 200) {
@@ -34,6 +36,31 @@ export function ActiveUsersSection() {
     fetchOnlineUsers()
   }, [client])
 
+  useSocketEvent("presence", (payLoad: PresencePayload) => {
+    console.log("Event revieved...")
+    if (payLoad.presence_type === "add_user" && payLoad.user_data) {
+      const userData = payLoad.user_data
+      setActiveUsers((pre) => {
+        return [
+          ...pre,
+          {
+            username: userData.username,
+            firstName: userData.username,
+            lastName: userData.username,
+            id: userData.id,
+            rating: userData.rating,
+          },
+        ]
+      })
+    } else if (
+      payLoad.presence_type === "remove_user" &&
+      payLoad.remove_user_id
+    ) {
+      setActiveUsers((pre) => {
+        return [...pre.filter((us) => us.id !== payLoad.remove_user_id)]
+      })
+    }
+  })
 
   return (
     <Card className="w-full max-w-2xl border-border/60 shadow-sm">
@@ -65,6 +92,8 @@ export function ActiveUsersSection() {
             lastName={row.lastName}
             username={row.username}
             rating={row.rating}
+            isActive
+            challenge
             key={row.id}
           />
         ))}

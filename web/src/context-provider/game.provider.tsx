@@ -102,7 +102,7 @@ export const GameSocketProvider = ({
         if (!isMounted) return
 
         // 2. Connect using the one-time ticket
-        const wsUrl = `ws://${WS_ADDR}/ws?ticket=${encodeURIComponent(ticket)}`
+        const wsUrl = `ws://${WS_ADDR}/api/ws?ticket=${encodeURIComponent(ticket)}`
         ws = new WebSocket(wsUrl)
         wsRef.current = ws
 
@@ -121,6 +121,8 @@ export const GameSocketProvider = ({
         }
 
         ws.onmessage = (messageEvent: MessageEvent) => {
+
+          console.log("Channel Closed.")
           try {
             const envelope: SocketEnvelope = JSON.parse(messageEvent.data)
             const { type, payload } = envelope

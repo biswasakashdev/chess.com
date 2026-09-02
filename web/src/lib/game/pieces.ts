@@ -12,8 +12,8 @@ import bishopDark from "@/assets/pieces/Chess_bdt45.svg"
 import queenDark from "@/assets/pieces/Chess_qdt45.svg"
 import queenLight from "@/assets/pieces/Chess_qlt45.svg"
 
-export function getPieceImageUrl(piece: string): string | null {
-  if (piece === ".") return null
+export function getPieceImageUrl(piece: string): string | undefined {
+  if (piece === ".") return undefined
 
   const isWhite = piece === piece.toUpperCase()
   const colorPrefix = isWhite ? "w" : "b"
