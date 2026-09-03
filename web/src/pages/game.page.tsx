@@ -2,7 +2,7 @@ import { ChessBoard } from "@/components/game/chess-board";
 import { GameOverDialog } from "@/components/game/game-dialogue";
 import { GameSidebar, type MoveRecord } from "@/components/game/sidebar";
 import {
-  useChessSocket,
+  useChessContext,
   useSocketEvent,
   type GameOverPayload,
   type MoveMadePayload,
@@ -24,7 +24,7 @@ const INITIAL_BOARD = [
 export const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>();
   const location = useLocation();
-  const { sendMove } = useChessSocket();
+  const { sendMove } = useChessContext();
 
   // Color passed via router state or default
   const playerColor: "White" | "Black" = location.state?.color || "White";

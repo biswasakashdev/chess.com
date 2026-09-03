@@ -1,9 +1,9 @@
-import App from "@/App"
 import AuthPage from "@/pages/auth.page"
-import {GamePage} from "@/pages/game.page"
-import { createBrowserRouter, Navigate } from "react-router"
-import LobbyPage from "./pages/lobby.page"
 import HomePage from "@/pages/home.page"
+import { createBrowserRouter, Navigate } from "react-router"
+import App from "./App"
+import LobbyPage from "./pages/lobby.page"
+import { GamePage } from "./pages/game.page"
 
 const router = createBrowserRouter([
   {
@@ -11,7 +11,6 @@ const router = createBrowserRouter([
     Component: App,
     children: [
       {
-        // The routes under home are secured and not accessed without authorization.
         path: "home",
         Component: HomePage,
         children: [
@@ -20,20 +19,20 @@ const router = createBrowserRouter([
             Component: LobbyPage,
           },
           {
-            path: ":gameId/game",
+            path: ":gameId",
             Component: GamePage,
           },
         ],
       },
       {
-        path: "auth",
+        path: "/auth",
         Component: AuthPage,
       },
+      {
+        path: "/",
+        element: <Navigate replace={true} to="/home" />,
+      },
     ],
-  },
-  {
-    path: "*",
-    element: <Navigate replace={true} to="/home" />,
   },
 ])
 

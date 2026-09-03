@@ -19,7 +19,7 @@ func NewUserService(userRepo userRepo.UserRepository) *UserService {
 	}
 }
 
-func (us *UserService) GetUserByUsernameNotFriendWith(ctx context.Context, userId, searchQuery string) ([]*dtos.UserPayload, error) {
+func (us *UserService) GetUserByUsernameNotFriendWith(ctx context.Context, userId, searchQuery string) ([]*dtos.UserResp, error) {
 	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
@@ -32,7 +32,7 @@ func (us *UserService) GetUserByUsernameNotFriendWith(ctx context.Context, userI
 	return getUserPayloadList(users), nil
 }
 
-func (us *UserService) GetUserByUsername(username string, ctx context.Context) (*dtos.UserPayload, error) {
+func (us *UserService) GetUserByUsername(username string, ctx context.Context) (*dtos.UserResp, error) {
 	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	user, err := us.userRepo.FindByUsername(newCtx, username)
@@ -41,7 +41,7 @@ func (us *UserService) GetUserByUsername(username string, ctx context.Context) (
 		return nil, util.InternalError
 	}
 
-	userResp := dtos.UserPayload{
+	userResp := dtos.UserResp{
 		Id:        user.Id.String(),
 		FirstName: user.FirstName,
 		LastName:  user.LastName,
@@ -51,7 +51,7 @@ func (us *UserService) GetUserByUsername(username string, ctx context.Context) (
 	return &userResp, nil
 }
 
-func (us *UserService) GetUserById(id string, ctx context.Context) (*dtos.UserPayload, error) {
+func (us *UserService) GetUserById(id string, ctx context.Context) (*dtos.UserResp, error) {
 	newCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 
@@ -61,7 +61,7 @@ func (us *UserService) GetUserById(id string, ctx context.Context) (*dtos.UserPa
 		return nil, util.InternalError
 	}
 
-	userResp := dtos.UserPayload{
+	userResp := dtos.UserResp{
 		Id:        user.Id.String(),
 		FirstName: user.FirstName,
 		LastName:  user.LastName,

@@ -10,18 +10,13 @@ import {
 import useUserContext from "@/context/user.context"
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 
-
 const WS_ADDR = import.meta.env.VITE_SERVER_URL || ""
 
 export interface ChessSocketProviderProps {
   children: ReactNode
 }
 
-export const GameSocketProvider = ({
-  children,
-}: ChessSocketProviderProps) => {
-
-
+export const GameSocketProvider = ({ children }: ChessSocketProviderProps) => {
   const { client } = useAuthContext()
   const { user } = useUserContext()
   const userId = user.id
@@ -67,16 +62,29 @@ export const GameSocketProvider = ({
   )
   const sendChallenge = useCallback(
     (toUserId: string) => {
-      send("challenge_request", { to_user_id: toUserId })
+      send("challenge_request", {
+        to_user_id: toUserId,
+        from_user_data: {
+          id: user.id,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+        },
+      })
     },
-    [send]
+    [send, user]
   )
 
   const acceptChallenge = useCallback(
-    (fromUserId: string) => {
-      send("challenge_accept", { from_user_id: fromUserId })
+    (userId: string) => {
+      send("challenge_accept", {
+        to_user_id: user.id,
+        from_user_data: {
+          id: userId,
+        },
+      })
     },
-    [send]
+    [send, user]
   )
 
   const sendMove = useCallback(
@@ -121,12 +129,9 @@ export const GameSocketProvider = ({
         }
 
         ws.onmessage = (messageEvent: MessageEvent) => {
-
-          console.log("Channel Closed.")
           try {
             const envelope: SocketEnvelope = JSON.parse(messageEvent.data)
             const { type, payload } = envelope
-
 
             const handlers = listenersRef.current.get(type)
             if (handlers) {

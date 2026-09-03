@@ -27,7 +27,7 @@ var (
 	ErrInvalidFriendType = errors.New("invalid friend type: must be 'all', 'active', or 'offline'")
 )
 
-func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, activeStatus string) ([]*dtos.UserPayload, error) {
+func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, activeStatus string) ([]*dtos.UserResp, error) {
 	newCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -36,7 +36,7 @@ func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, active
 		return nil, fmt.Errorf("failed to fetch friends for user %s: %w", userId, err)
 	}
 	if len(friends) == 0 {
-		return []*dtos.UserPayload{}, nil
+		return []*dtos.UserResp{}, nil
 	}
 
 	activeClients := fs.hb.GetActiveClients()
@@ -44,11 +44,11 @@ func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, active
 	switch activeStatus {
 	case "":
 
-		result := make([]*dtos.UserPayload, 0, len(friends))
+		result := make([]*dtos.UserResp, 0, len(friends))
 
 		for _, user := range friends {
 			_, ok := activeClients[user.Id]
-			userPayload := &dtos.UserPayload{
+			userPayload := &dtos.UserResp{
 				Id:        user.Id,
 				FirstName: user.FirstName,
 				LastName:  user.LastName,
@@ -62,11 +62,11 @@ func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, active
 		return result, nil
 
 	case "online":
-		filtered := make([]*dtos.UserPayload, 0, len(friends))
+		filtered := make([]*dtos.UserResp, 0, len(friends))
 
 		for _, user := range friends {
 			if _, isActive := activeClients[user.Id]; isActive {
-				filtered = append(filtered, &dtos.UserPayload{
+				filtered = append(filtered, &dtos.UserResp{
 					Id:        user.Id,
 					FirstName: user.FirstName,
 					LastName:  user.LastName,
@@ -80,11 +80,11 @@ func (fs *FriendShipService) FetchAllFriends(ctx context.Context, userId, active
 
 	case "offline":
 		activeClients := fs.hb.GetActiveClients()
-		filtered := make([]*dtos.UserPayload, 0, len(friends))
+		filtered := make([]*dtos.UserResp, 0, len(friends))
 
 		for _, user := range friends {
 			if _, isActive := activeClients[user.Id]; !isActive {
-				filtered = append(filtered, &dtos.UserPayload{
+				filtered = append(filtered, &dtos.UserResp{
 					Id:        user.Id,
 					FirstName: user.FirstName,
 					LastName:  user.LastName,
@@ -121,7 +121,7 @@ var (
 	ErrInvalidRequestType = errors.New("invalid request type: must be 'sent' or 'received'")
 )
 
-func (fs *FriendShipService) FetchAllRequests(ctx context.Context, userId, requestType string) ([]*dtos.UserPayload, error) {
+func (fs *FriendShipService) FetchAllRequests(ctx context.Context, userId, requestType string) ([]*dtos.UserResp, error) {
 	newCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 
@@ -145,7 +145,7 @@ func (fs *FriendShipService) FetchAllRequests(ctx context.Context, userId, reque
 
 	// Return an empty slice instead of nil for consistent JSON serialization ([] instead of null)
 	if requests == nil {
-		return []*dtos.UserPayload{}, nil
+		return []*dtos.UserResp{}, nil
 	}
 
 	return getUserPayloadList(requests), nil
@@ -195,11 +195,11 @@ func (fs *FriendShipService) DeleteRequest(ctx context.Context, userId, targetUs
 	return nil
 }
 
-func getUserPayloadList(userList []*userRepo.UserDTO) []*dtos.UserPayload {
-	var userListResp []*dtos.UserPayload = make([]*dtos.UserPayload, 0, len(userList))
+func getUserPayloadList(userList []*userRepo.UserDTO) []*dtos.UserResp {
+	var userListResp []*dtos.UserResp = make([]*dtos.UserResp, 0, len(userList))
 
 	for _, user := range userList {
-		userListResp = append(userListResp, &dtos.UserPayload{
+		userListResp = append(userListResp, &dtos.UserResp{
 			Id:        user.Id,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,

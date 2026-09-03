@@ -1,9 +1,6 @@
 import { UserRow } from "@/components/user-row"
 import useAuthContext from "@/context/auth.context"
-import {
-  useSocketEvent,
-  type PresencePayload
-} from "@/context/game.context"
+import { useSocketEvent, type PresencePayload } from "@/context/game.context"
 import { useEffect, useState } from "react"
 
 interface Friend {
@@ -31,29 +28,24 @@ export default function FriendsList() {
   }, [client])
 
   useSocketEvent("presence", (payLoad: PresencePayload) => {
-    if (payLoad.presence_type === "add_user" && payLoad.user_data) {
-      const userData = payLoad.user_data
+    if (payLoad.presence_type === "add_user") {
       setFriendsList((pre) => {
         return [
-          ...pre,
-          {
-            username: userData.username,
-            firstName: userData.username,
-            lastName: userData.username,
-            id: userData.id,
-            rating: userData.rating,
-            isActive: true,
-          },
+          ...pre.map((itm) => {
+            if (itm.id === payLoad.user_data.id) {
+              return { ...itm, isActive: true }
+            }
+            return { ...itm }
+          }),
         ]
       })
     } else if (
-      payLoad.presence_type === "remove_user" &&
-      payLoad.remove_user_id
+      payLoad.presence_type === "remove_user"
     ) {
       setFriendsList((pre) => {
         return [
           ...pre.map((us) => {
-            if (us.id === payLoad.remove_user_id) {
+            if (us.id === payLoad.user_data.id) {
               return { ...us, isActive: false }
             }
             return { ...us }

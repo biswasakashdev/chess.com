@@ -13,7 +13,7 @@ type PlayerStatusPayload struct {
 	Status PlayerStatus `json:"status"`
 }
 
-type UserPayload struct {
+type UserResp struct {
 	Id        string `json:"id"`
 	Username  string `json:"username"`
 	FirstName string `json:"firstName"`

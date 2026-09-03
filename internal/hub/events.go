@@ -2,8 +2,6 @@ package hub
 
 import (
 	"encoding/json"
-
-	"github.com/biswasakashdev/chess.com/internal/dtos"
 )
 
 type EventType string
@@ -34,15 +32,28 @@ type Event struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-// Client payloads
-type ChallengePayload struct {
-	FromUserID string `json:"from_user_id,omitempty"`
-	ToUserID   string `json:"to_user_id"`
+type UserPayload struct {
+	Id        string `json:"id"`
+	Username  string `json:"username,omitempty"`
+	FirstName string `json:"firstName,omitempty"`
+	LastName  string `json:"lastName,omitempty"`
 }
 
-type MovePayload struct {
+// Client payloads
+type ChallengePayload struct {
+	ToUserID     string      `json:"to_user_id,omitempty"`
+	FromUserData UserPayload `json:"from_user_data"`
+}
+
+type MakeMovePayload struct {
 	GameID string `json:"game_id"`
 	Move   string `json:"move"` // UCI format e.g., "e2e4"
+}
+
+type SelectPiecePayload struct {
+	GameId string `json:"gameId"`
+	UserID string `json:"userId"`
+	Piece  string `json:"piece"`
 }
 
 /*
@@ -50,14 +61,13 @@ Server payloads
 */
 
 type GameStartPayload struct {
-	GameID      string `json:"game_id"`
-	WhitePlayer string `json:"white_player"`
-	BlackPlayer string `json:"black_player"`
+	GameID string `json:"game_id"`
 }
 
 type MoveMadePayload struct {
-	Move string `json:"move"`
-	FEN  string `json:"fen"`
+	UserId string `json:"user_id"`
+	Move   string `json:"move"`
+	FEN    string `json:"fen"`
 }
 
 type GameOverPayload struct {
@@ -69,15 +79,8 @@ type ErrorPayload struct {
 	Message string `json:"message"`
 }
 
-type SelectPiecePayload struct {
-	GameId string `json:"gameId"`
-	UserID string `json:"userId"`
-	Piece  string `json:"piece"`
-}
-
 type AvailableMovesPayload struct {
-	ForUserId string   `json:"forUserId"`
-	Moves     []string `json:"moves"`
+	Moves []string `json:"moves"`
 }
 
 type PresenceType string
@@ -88,7 +91,6 @@ var (
 )
 
 type PresencePayload struct {
-	PresenceType PresenceType     `json:"presence_type"`
-	RemoveUserId string           `json:"remove_user_id,omitempty"`
-	UserData     dtos.UserPayload `json:"user_data"`
+	PresenceType PresenceType `json:"presence_type"`
+	UserPayload  `json:"user_data"`
 }

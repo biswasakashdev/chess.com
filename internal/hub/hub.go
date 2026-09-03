@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/biswasakashdev/chess.com/internal/dtos"
 	usersRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
 	"github.com/google/uuid"
@@ -124,12 +123,11 @@ func (h *Hub) broadcastPresence(userId string, presenseTypeRegister bool) {
 
 		userPayload, _ := json.Marshal(PresencePayload{
 			PresenceType: PresenceTypeAddUser,
-			UserData: dtos.UserPayload{
+			UserPayload: UserPayload{
 				Id:        userData.Id.String(),
 				Username:  userData.Username,
 				FirstName: userData.FirstName,
 				LastName:  userData.LastName,
-				Rating:    userData.Rating,
 			},
 		})
 
@@ -137,7 +135,9 @@ func (h *Hub) broadcastPresence(userId string, presenseTypeRegister bool) {
 	} else {
 		userPayload, _ := json.Marshal(PresencePayload{
 			PresenceType: PresenceTypeRemoveUser,
-			RemoveUserId: userId,
+			UserPayload: UserPayload{
+				Id: userId,
+			},
 		})
 
 		payload = userPayload
@@ -179,7 +179,10 @@ func (h *Hub) RouteEvent(client *Client, event Event) {
 			client.SendError("Bad payload")
 			return
 		}
-		h.handleChallenge(client.UserID, payload.ToUserID)
+
+		userData := payload.FromUserData
+
+		h.handleChallenge(client.UserID, payload.ToUserID, userData.Username, userData.FirstName, userData.LastName)
 
 	case EventChallengeAccept:
 		var payload ChallengePayload
@@ -187,10 +190,10 @@ func (h *Hub) RouteEvent(client *Client, event Event) {
 			client.SendError("Bad payload")
 			return
 		}
-		h.handleAcceptChallenge(payload.FromUserID, client.UserID)
+		h.handleAcceptChallenge(payload.FromUserData.Id, client.UserID)
 
 	case EventMakeMove:
-		var payload MovePayload
+		var payload MakeMovePayload
 		if err := json.Unmarshal(event.Payload, &payload); err != nil {
 			client.SendError("Bad payload")
 			return
@@ -206,7 +209,7 @@ func (h *Hub) RouteEvent(client *Client, event Event) {
 
 }
 
-func (h *Hub) handleChallenge(fromID, toID string) {
+func (h *Hub) handleChallenge(fromID, toID, username, firstName, lastName string) {
 	h.mu.RLock()
 	targetClient, exists := h.clients[toID]
 	h.mu.RUnlock()
@@ -216,7 +219,13 @@ func (h *Hub) handleChallenge(fromID, toID string) {
 		return
 	}
 
-	payload, _ := json.Marshal(ChallengePayload{FromUserID: fromID, ToUserID: toID})
+	payload, _ := json.Marshal(ChallengePayload{ToUserID: toID,
+		FromUserData: UserPayload{
+			Id:        fromID,
+			Username:  username,
+			FirstName: firstName,
+			LastName:  lastName,
+		}})
 	msg, _ := json.Marshal(Event{Type: EventChallengeReq, Payload: payload})
 	targetClient.Send <- msg
 }
@@ -248,24 +257,16 @@ func (h *Hub) handleAcceptChallenge(fromID, toID string) {
 	go room.Run()
 
 	// Notify White player
-	wPayload, _ := json.Marshal(GameStartPayload{
-		GameID:      gameID,
-		WhitePlayer: white.UserID,
-		BlackPlayer: black.UserID,
-	})
-	white.Send <- formatEvent(EventGameStart, wPayload)
-
-	// Notify Black player
-	bPayload, _ := json.Marshal(GameStartPayload{
-		GameID:      gameID,
-		WhitePlayer: white.UserID,
-		BlackPlayer: black.UserID,
-	})
-
-	black.Send <- formatEvent(EventGameStart, bPayload)
+	//
+	gameStartPayload := GameStartPayload{
+		GameID: gameID,
+	}
+	payload, _ := json.Marshal(gameStartPayload)
+	white.Send <- formatEvent(EventGameStart, payload)
+	black.Send <- formatEvent(EventGameStart, payload)
 }
 
-func (h *Hub) handleMove(playerID string, payload MovePayload) {
+func (h *Hub) handleMove(playerID string, payload MakeMovePayload) {
 	h.mu.RLock()
 	room, exists := h.rooms[payload.GameID]
 	h.mu.RUnlock()

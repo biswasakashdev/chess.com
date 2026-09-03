@@ -2,10 +2,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import useAuthContext from "@/context/auth.context"
-import {
-  useSocketEvent,
-  type PresencePayload
-} from "@/context/game.context"
+import { useSocketEvent, type PresencePayload } from "@/context/game.context"
 import { ArrowUpRight } from "lucide-react"
 import { useEffect, useState } from "react"
 import { UserRow } from "../user-row"
@@ -15,7 +12,6 @@ interface ActiveUser {
   username: string
   firstName: string
   lastName: string
-  rating: number
 }
 
 export function ActiveUsersSection() {
@@ -37,27 +33,24 @@ export function ActiveUsersSection() {
   }, [client])
 
   useSocketEvent("presence", (payLoad: PresencePayload) => {
-    console.log("Event revieved...")
-    if (payLoad.presence_type === "add_user" && payLoad.user_data) {
-      const userData = payLoad.user_data
+    if (payLoad.presence_type === "add_user") {
+      const { firstName, lastName, username,id } = payLoad.user_data
+      if (firstName && lastName && username) {
+        setActiveUsers((pre) => {
+          return [
+            ...pre,
+            {
+              username: username,
+              firstName: firstName,
+              lastName: lastName,
+              id: id,
+            },
+          ]
+        })
+      }
+    } else if (payLoad.presence_type === "remove_user") {
       setActiveUsers((pre) => {
-        return [
-          ...pre,
-          {
-            username: userData.username,
-            firstName: userData.username,
-            lastName: userData.username,
-            id: userData.id,
-            rating: userData.rating,
-          },
-        ]
-      })
-    } else if (
-      payLoad.presence_type === "remove_user" &&
-      payLoad.remove_user_id
-    ) {
-      setActiveUsers((pre) => {
-        return [...pre.filter((us) => us.id !== payLoad.remove_user_id)]
+        return [...pre.filter((us) => us.id !== payLoad.user_data.id)]
       })
     }
   })
@@ -91,7 +84,6 @@ export function ActiveUsersSection() {
             firstName={row.firstName}
             lastName={row.lastName}
             username={row.username}
-            rating={row.rating}
             isActive
             challenge
             key={row.id}

@@ -4,15 +4,13 @@ export type PlayerStatus = "online" | "idle"
 
 export interface UserPayload {
   id: string
-  username: string
-  rating: number
-  firstName: string
-  lastName: string
+  username?: string
+  firstName?: string
+  lastName?: string
 }
 export interface PresencePayload {
   presence_type: "add_user" | "remove_user"
-  remove_user_id: undefined | null | string
-  user_data: undefined | null | UserPayload
+  user_data: UserPayload
 }
 
 export interface PlayerStatusPayload {
@@ -20,9 +18,9 @@ export interface PlayerStatusPayload {
   status: PlayerStatus
 }
 
-export interface ChallengeRequestPayload {
-  to_user_id: string
-  from_user_id?: string
+export interface ChallengePayload {
+  from_user_data: UserPayload
+  to_user_id?: string
 }
 
 export interface ChallengeAcceptPayload {
@@ -32,8 +30,6 @@ export interface ChallengeAcceptPayload {
 
 export interface GameStartPayload {
   game_id: string
-  white_player: string
-  black_player: string
 }
 
 export interface SelectPiecePayload {
@@ -70,15 +66,15 @@ export interface AvailableMovesPayload {
 export interface SocketEventMap {
   // Client events
   make_move: MakeMovePayload
-  challenge_request: ChallengeRequestPayload
-  challenge_accept: ChallengeAcceptPayload
+  challenge_request: ChallengePayload
   select_piece: SelectPiecePayload
+  challenge_accept: ChallengePayload
 
   // Server event
   move_made: MoveMadePayload
+  challenge: ChallengePayload
   game_start: GameStartPayload
   presence: PresencePayload
-  player_status: PlayerStatusPayload
   game_over: GameOverPayload
   available_moves: AvailableMovesPayload
   error: ErrorPayload
@@ -116,7 +112,7 @@ export const GameSocketContext = createContext<ChessSocketContextType | null>(
 
 // --- Custom Hooks ---
 
-export const useChessSocket = (): ChessSocketContextType => {
+export const useChessContext = (): ChessSocketContextType => {
   const context = useContext(GameSocketContext)
   if (!context) {
     throw new Error("useChessSocket must be used within a ChessSocketProvider")
@@ -130,7 +126,7 @@ export const useSocketEvent = <K extends EventType>(
   event: K,
   handler: EventHandler<K>
 ): void => {
-  const { subscribe } = useChessSocket()
+  const { subscribe } = useChessContext()
   const handlerRef = useRef<EventHandler<K>>(handler)
 
   useEffect(() => {

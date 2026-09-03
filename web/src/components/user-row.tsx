@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { getCapitalise } from "@/utils/user-utils"
+import { useChessContext } from "@/context/game.context"
+import { getCapitalise, getInitials } from "@/utils/user-utils"
 import { Circle, Swords, UserPlus } from "lucide-react"
 
 export interface UserRowProps {
@@ -25,16 +26,14 @@ export const UserRow = ({
   sendRequestHandler,
 }: UserRowProps) => {
   const fullName = getCapitalise(firstName, lastName)
-
-  const sendchallengehandler = (userId: string) => {}
-
+  const {sendChallenge}= useChessContext()
   return (
     <div className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent">
       <div className="flex items-center space-x-3">
         <div className="relative">
           <Avatar className="h-8 w-8">
             <AvatarFallback>
-              <span>{firstName[0] + lastName[0]}</span>
+              <span>{getInitials(firstName, lastName)}</span>
             </AvatarFallback>
           </Avatar>
 
@@ -59,7 +58,7 @@ export const UserRow = ({
             size="icon"
             className="h-7 w-7"
             title="Challenge"
-            onClick={() => sendchallengehandler(id)}
+            onClick={() => sendChallenge(id)}
           >
             <Swords className="h-3.5 w-3.5" />
           </Button>
