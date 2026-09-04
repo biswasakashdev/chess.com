@@ -32,7 +32,7 @@ export const LobbyPage = () => {
   useSocketEvent("challenge_request", (payload: ChallengePayload) => {
     const { username, firstName,lastName,id } = payload.from_user_data
 
-    console.log("Some message came...")
+    console.log("Some message came...", username,firstName,lastName,id)
     if (username && id && firstName && lastName) {
       toast(
         <div>

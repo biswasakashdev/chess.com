@@ -2,9 +2,11 @@ package hub
 
 import (
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/biswasakashdev/chess.com/internal/chess"
+	"github.com/biswasakashdev/chess.com/internal/dtos"
 )
 
 type MoveAction struct {
@@ -18,8 +20,8 @@ type GameRoom struct {
 	BlackPlayer *Client
 	Game        chess.Chess
 	MoveChan    chan MoveAction
-	StopChan    chan struct{}
-	mu          sync.Mutex
+	StopChan    chan string
+	mu          sync.RWMutex
 }
 
 func NewGameRoom(id string, white, black *Client) *GameRoom {
@@ -29,14 +31,21 @@ func NewGameRoom(id string, white, black *Client) *GameRoom {
 		BlackPlayer: black,
 		Game:        chess.NewGame(),
 		MoveChan:    make(chan MoveAction),
-		StopChan:    make(chan struct{}),
+		StopChan:    make(chan string),
 	}
 }
 
+// Handle user connections
 func (r *GameRoom) Run() {
 	for {
 		select {
-		case <-r.StopChan:
+		case useranme := <-r.StopChan:
+
+			payload := GameOverPayload{
+				Reason: "Draw",
+				Result: fmt.Sprintf("Username %s cancelled the game", useranme),
+			}
+			r.broadcast(EventGameOver, payload)
 			return
 		case action := <-r.MoveChan:
 			r.mu.Lock()
@@ -84,6 +93,23 @@ func (r *GameRoom) Run() {
 			}
 		}
 	}
+}
+
+func (r *GameRoom) GetRoomDetails() *dtos.GameDetails {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	turn := "turn_black"
+	if r.Game.GetTurn() == chess.TurnWhite {
+		turn = "turn_white"
+	}
+	return &dtos.GameDetails{
+		GameId:      r.ID,
+		WhitePlayer: r.WhitePlayer.UserID,
+		BlackPlayer: r.BlackPlayer.UserID,
+		Turn:        turn,
+		Board:       r.Game.GetBoard(),
+	}
+
 }
 
 func (r *GameRoom) broadcast(eventType EventType, payload any) {

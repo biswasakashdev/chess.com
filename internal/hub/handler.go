@@ -17,7 +17,7 @@ func (h *Hub) WsHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := h.ticketService.GetTicket(ticket)
+	userDet, err := h.ticketService.GetTicket(ticket)
 	if err != nil {
 		util.BuildErrResponse(w, errors.New("Invalid Token"))
 		return
@@ -32,10 +32,11 @@ func (h *Hub) WsHandle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		Hub:    h,
-		Conn:   conn,
-		UserID: userID,
-		Send:   make(chan []byte, 256),
+		Hub:      h,
+		Conn:     conn,
+		UserID:   userDet.UserId,
+		Username: userDet.Username,
+		Send:     make(chan []byte, 256),
 	}
 
 	h.Register <- client

@@ -8,18 +8,23 @@ import (
 	"github.com/google/uuid"
 )
 
+type UserDetails struct {
+	UserId   string
+	Username string
+}
+
 type TicketService struct {
-	tickets map[string]string
+	tickets map[string]*UserDetails
 	mut     sync.RWMutex
 }
 
 func NewTicketService() *TicketService {
 	return &TicketService{
-		tickets: make(map[string]string),
+		tickets: make(map[string]*UserDetails),
 	}
 }
 
-func (ts *TicketService) InitTicket(userID string) (string, error) {
+func (ts *TicketService) InitTicket(userId, username string) (string, error) {
 	ts.mut.Lock()
 	defer ts.mut.Unlock()
 	newTicket, err := uuid.NewRandom()
@@ -27,18 +32,21 @@ func (ts *TicketService) InitTicket(userID string) (string, error) {
 		fmt.Println("Failed to initialise a ticket")
 		return "", err
 	}
-	ts.tickets[newTicket.String()] = userID
+	ts.tickets[newTicket.String()] = &UserDetails{
+		UserId:   userId,
+		Username: username,
+	}
 	return newTicket.String(), nil
 }
 
-func (ts *TicketService) GetTicket(ticket string) (string, error) {
+func (ts *TicketService) GetTicket(ticket string) (*UserDetails, error) {
 	ts.mut.RLock()
 	defer ts.mut.RUnlock()
 	val, ok := ts.tickets[ticket]
 
 	if !ok {
 		fmt.Println("Failed to initialise a ticket")
-		return "", errors.New("Invalid ticket")
+		return nil, errors.New("Invalid ticket")
 	}
 	return val, nil
 }

@@ -2,7 +2,6 @@ package hub
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -17,10 +16,11 @@ const (
 )
 
 type Client struct {
-	Hub    *Hub
-	Conn   *websocket.Conn
-	UserID string
-	Send   chan []byte // What needs to send to the client comes to this channel.
+	Hub      *Hub
+	Username string
+	Conn     *websocket.Conn
+	UserID   string
+	Send     chan []byte // What needs to send to the client comes to this channel.
 }
 
 // Reads the incomming messages from the connection and pass to the event handler.
@@ -66,7 +66,6 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.Send:
-			fmt.Println("Message is commming")
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})

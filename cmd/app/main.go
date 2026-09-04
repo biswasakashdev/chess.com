@@ -56,7 +56,8 @@ func main() {
 	authRouter := handlers.NewAuthRouter(authService)
 	userRouter := handlers.NewUserRouter(userService)
 	friendshipRouter := handlers.NewFriendshipRouter(friendshipService)
-	ticketRouter := handlers.NewTicketRouter(ticketService)
+	ticketRouter := handlers.NewTicketRouter(ticketService, sqLiteUserRepo)
+	gameRouter := handlers.NewGameRouter(gameHub)
 
 	// Start the background processing.
 	go gameHub.Run()
@@ -75,6 +76,7 @@ func main() {
 		r.Mount("/api/v1/users", userRouter)
 		r.Mount("/api/v1/tickets", ticketRouter)
 		r.Mount("/api/v1/friends", friendshipRouter)
+		r.Mount("/api/v1/games", gameRouter)
 
 	})
 

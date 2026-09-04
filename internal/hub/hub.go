@@ -3,11 +3,13 @@ package hub
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"net/http"
 	"sync"
 	"time"
 
+	"github.com/biswasakashdev/chess.com/internal/dtos"
 	usersRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
 	"github.com/google/uuid"
@@ -82,6 +84,47 @@ func (h *Hub) GetActiveClients() map[string]struct{} {
 	}
 
 	return activeUserList
+}
+
+var (
+	ErrorInvalidRoomDetails error = errors.New("Invalid game room")
+	ErrorInvalidUserDetails error = errors.New("Invalid user id")
+)
+
+func (h *Hub) GetGameDetails(roomId, userId string) (*dtos.GameDetails, error) {
+	h.mu.RLock()
+	val, ok := h.rooms[roomId]
+	h.mu.RUnlock()
+
+	if !ok {
+		return nil, ErrorInvalidRoomDetails
+	}
+	if val.WhitePlayer.UserID == userId || val.BlackPlayer.UserID == userId {
+		return val.GetRoomDetails(), nil
+	}
+	return nil, ErrorInvalidRoomDetails
+}
+
+func (h *Hub) DeleteRoom(roomId, userId string) error {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	val, ok := h.rooms[roomId]
+
+	if !ok {
+		return ErrorInvalidRoomDetails
+	}
+	var username string
+
+	if val.WhitePlayer.UserID == userId {
+		username = val.WhitePlayer.Username
+	} else if val.BlackPlayer.UserID == userId {
+		username = val.BlackPlayer.Username
+	} else {
+		return ErrorInvalidUserDetails
+	}
+	val.StopChan <- username
+	delete(h.rooms, roomId)
+	return nil
 }
 
 func (h *Hub) SendFriendNotification() {
