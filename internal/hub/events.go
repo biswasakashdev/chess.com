@@ -2,6 +2,8 @@ package hub
 
 import (
 	"encoding/json"
+
+	"github.com/biswasakashdev/chess.com/internal/dtos"
 )
 
 type EventType string
@@ -65,9 +67,10 @@ type GameStartPayload struct {
 }
 
 type MoveMadePayload struct {
-	UserId string `json:"user_id"`
-	Move   string `json:"move"`
-	FEN    string `json:"fen"`
+	UserId string        `json:"id"`
+	Turn   dtos.GameTurn `json:"turn"`
+	Move   string        `json:"move"`
+	FEN    string        `json:"fen"`
 }
 
 type GameOverPayload struct {

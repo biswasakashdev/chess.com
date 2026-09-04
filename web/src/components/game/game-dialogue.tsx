@@ -15,7 +15,7 @@ interface GameOverDialogProps {
   open: boolean;
   result: string;
   reason: string;
-  playerColor: "White" | "Black";
+  playerColor: "white" | "black";
 }
 
 export const GameOverDialog: React.FC<GameOverDialogProps> = ({
@@ -27,8 +27,8 @@ export const GameOverDialog: React.FC<GameOverDialogProps> = ({
   const navigate = useNavigate();
 
   const isWin =
-    (result === "WhiteWins" && playerColor === "White") ||
-    (result === "BlackWins" && playerColor === "Black");
+    (result === "WhiteWins" && playerColor === "white") ||
+    (result === "BlackWins" && playerColor === "black");
   const isDraw = result === "Draw" || result === "NoOutCome";
 
   return (

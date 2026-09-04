@@ -3,8 +3,8 @@ package chess
 type Turn int
 
 const (
-	TurnWhite Turn = Turn(Black)
-	TurnBlack Turn = Turn(White)
+	TurnWhite Turn = Turn(White)
+	TurnBlack Turn = Turn(Black)
 )
 
 type OutCome int

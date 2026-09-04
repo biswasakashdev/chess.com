@@ -3,7 +3,7 @@ import { getPieceImageUrl } from "@/lib/game/pieces";
 
 interface ChessBoardProps {
   board: string[][]; // 8x8 array of characters
-  playerColor: "White" | "Black";
+  playerColor: "white" | "black";
   selectedSquare: string | null;
   availableMoves: string[]; // e.g. ["e3", "e4"]
   lastMove: { from: string; to: string } | null;
@@ -24,8 +24,8 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
   const ranks = ["8", "7", "6", "5", "4", "3", "2", "1"];
 
   // Orient files/ranks based on perspective
-  const displayRanks = playerColor === "Black" ? [...ranks].reverse() : ranks;
-  const displayFiles = playerColor === "Black" ? [...files].reverse() : files;
+  const displayRanks = playerColor === "black" ? [...ranks].reverse() : ranks;
+  const displayFiles = playerColor === "black" ? [...files].reverse() : files;
 
   return (
     <div className="relative aspect-square w-full max-w-[620px] select-none rounded-lg border-4 border-muted/80 shadow-2xl bg-[#769656] overflow-hidden">
@@ -37,7 +37,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
             // Map rank & file back to original 0-indexed [r][c] board matrix
             const r = 8 - parseInt(rank, 10);
             const c = file.charCodeAt(0) - 97;
-            const pieceCode = board[r]?.[c] || ".";
+            const pieceCode = board[r][c] || ".";
 
             const isLightSquare = (r + c) % 2 === 0;
             const isSelected = selectedSquare === square;
@@ -71,7 +71,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                 )}
 
                 {/* Piece Image */}
-                {pieceCode && (
+                {pieceCode !== "." && (
                   <img
                     src={getPieceImageUrl(pieceCode)}
                     alt={pieceCode}
@@ -83,7 +83,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                 )}
 
                 {/* Board Edge Coordinates */}
-                {file === (playerColor === "Black" ? "h" : "a") && (
+                {file === (playerColor === "black" ? "h" : "a") && (
                   <span
                     className={`absolute top-0.5 left-1 text-[10px] font-bold ${
                       isLightSquare ? "text-[#769656]" : "text-[#eeeed2]"
@@ -92,7 +92,7 @@ export const ChessBoard: React.FC<ChessBoardProps> = ({
                     {rank}
                   </span>
                 )}
-                {rank === (playerColor === "Black" ? "8" : "1") && (
+                {rank === (playerColor === "black" ? "8" : "1") && (
                   <span
                     className={`absolute bottom-0.5 right-1 text-[10px] font-bold ${
                       isLightSquare ? "text-[#769656]" : "text-[#eeeed2]"

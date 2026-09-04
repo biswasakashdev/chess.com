@@ -3,6 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/biswasakashdev/chess.com/internal/chess"
@@ -72,10 +73,18 @@ func (r *GameRoom) Run() {
 			outcome := r.Game.GetOutCome()
 			r.mu.Unlock()
 
+			currTurn := dtos.GameTurnBlack
+
+			if r.Game.GetTurn() == chess.TurnWhite {
+				currTurn = dtos.GameTurnWhite
+			}
+
 			// Broadcast move to both players
 			r.broadcast(EventMoveMade, MoveMadePayload{
-				Move: action.MoveUCI,
-				FEN:  fen,
+				UserId: action.PlayerID,
+				Turn:   currTurn,
+				Move:   action.MoveUCI,
+				FEN:    fen,
 			})
 
 			// Check for game completion
@@ -98,9 +107,10 @@ func (r *GameRoom) Run() {
 func (r *GameRoom) GetRoomDetails() *dtos.GameDetails {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	turn := "turn_black"
+	turn := dtos.GameTurnBlack
+	log.Println(r.Game.GetTurn())
 	if r.Game.GetTurn() == chess.TurnWhite {
-		turn = "turn_white"
+		turn = dtos.GameTurnWhite
 	}
 	return &dtos.GameDetails{
 		GameId:      r.ID,

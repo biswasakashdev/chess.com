@@ -23,8 +23,8 @@ interface GameSidebarProps {
   gameId: string;
   whitePlayer: string;
   blackPlayer: string;
-  playerColor: "White" | "Black";
-  currentTurn: "White" | "Black";
+  playerColor: "white" | "black";
+  currentTurn: "white" | "black";
   moves: MoveRecord[];
   onResign: () => void;
 }

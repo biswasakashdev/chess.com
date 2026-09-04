@@ -42,8 +42,9 @@ export interface MakeMovePayload {
 }
 
 export interface MoveMadePayload {
-  game_id: string
+  id: string
   move: string
+  turn: "white" | "black"
   fen: string
 }
 

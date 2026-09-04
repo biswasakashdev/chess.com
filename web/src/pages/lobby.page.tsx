@@ -16,23 +16,23 @@ import {
 import useUserContext from "@/context/user.context"
 import { getCapitalise } from "@/utils/user-utils"
 import { Swords } from "lucide-react"
+import { useNavigate } from "react-router"
 import { toast } from "sonner"
 
 export const LobbyPage = () => {
   const { acceptChallenge } = useChessContext()
   const { user } = useUserContext()
-  const{ updateAuthorization }= useAuthContext()
+  const { updateAuthorization } = useAuthContext()
+  const navigate = useNavigate()
 
   useSocketEvent("game_start", (payload: GameStartPayload) => {
     const gameId = payload.game_id
-    console.log("The created game id is: ",gameId)
-    // navigate(`/game/${gameId}`)
+    navigate(`/home/${gameId}`)
   })
 
   useSocketEvent("challenge_request", (payload: ChallengePayload) => {
     const { username, firstName,lastName,id } = payload.from_user_data
 
-    console.log("Some message came...", username,firstName,lastName,id)
     if (username && id && firstName && lastName) {
       toast(
         <div>
