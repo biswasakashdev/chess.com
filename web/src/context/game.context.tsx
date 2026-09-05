@@ -32,9 +32,6 @@ export interface GameStartPayload {
   game_id: string
 }
 
-export interface SelectPiecePayload {
-  piece: string
-}
 
 export interface MakeMovePayload {
   game_id: string
@@ -58,17 +55,12 @@ export interface ErrorPayload {
   message: string
 }
 
-export interface AvailableMovesPayload {
-  forUserId: string
-  moves: string[]
-}
 
 // Map mapping Event Names -> Payload Types
 export interface SocketEventMap {
   // Client events
   make_move: MakeMovePayload
   challenge_request: ChallengePayload
-  select_piece: SelectPiecePayload
   challenge_accept: ChallengePayload
 
   // Server event
@@ -77,7 +69,6 @@ export interface SocketEventMap {
   game_start: GameStartPayload
   presence: PresencePayload
   game_over: GameOverPayload
-  available_moves: AvailableMovesPayload
   error: ErrorPayload
 }
 

@@ -1,15 +1,15 @@
 import { ChessBoard } from "@/components/game/chess-board"
 import { GameOverDialog } from "@/components/game/game-dialogue"
-import { GameSidebar, type MoveRecord } from "@/components/game/sidebar"
+import { type MoveRecord } from "@/components/game/sidebar"
 import useAuthContext from "@/context/auth.context"
 import {
-  useChessContext,
-  useSocketEvent,
-  type AvailableMovesPayload,
-  type GameOverPayload,
-  type MoveMadePayload,
+    useChessContext,
+    useSocketEvent,
+    type GameOverPayload,
+    type MoveMadePayload
 } from "@/context/game.context"
 import useUserContext from "@/context/user.context"
+import type { User } from "@/types/user.types"
 import React, { useCallback, useEffect, useState } from "react"
 import { useParams } from "react-router"
 
@@ -94,8 +94,8 @@ export const GamePage: React.FC = () => {
     const fetchGameData = async () => {
       const { data, status } = await client.get<{
         id: string
-        white_player: string
-        black_player: string
+        white_player: User
+        black_player: User
         turn: "white" | "black"
         board: string
       }>(`/api/v1/games/${gameId}`)
@@ -104,7 +104,7 @@ export const GamePage: React.FC = () => {
         const { board, turn, black_player, white_player } = data
         setCurrentTurn(turn)
         setBoard(parseBoardState(board))
-        const currPlayerCol = black_player === user.id? "black":"white"
+        const currPlayerCol = black_player.id === user.id? "black":"white"
         setPlayerColor(currPlayerCol)
       }
     }
@@ -113,7 +113,6 @@ export const GamePage: React.FC = () => {
 
   // 1. Listen for move confirmations from server
   useSocketEvent("move_made", (data: MoveMadePayload) => {
-console.log("move made")
 
     // const from = data.move.substring(0, 2)
     // const to = data.move.substring(2, 4)
@@ -147,12 +146,6 @@ console.log("move made")
     }
   })
 
-  useSocketEvent("available_moves", (data: AvailableMovesPayload) => {
-    if (user.id === data.forUserId) {
-      setAvailableMoves(data.moves)
-    }
-  })
-
   // const applyMoveToLocalBoard = (from: string, to: string) => {
   //   const fromR = 8 - parseInt(from[1], 10);
   //   const fromC = from.charCodeAt(0) - 97;
@@ -176,7 +169,6 @@ console.log("move made")
     // Move to clicked destination
     if (selectedSquare && selectedSquare !== square) {
       const moveUci = `${selectedSquare}${square}`
-      console.log(moveUci)
       sendMove(gameId, moveUci)
       setSelectedSquare(null)
       setAvailableMoves([])
