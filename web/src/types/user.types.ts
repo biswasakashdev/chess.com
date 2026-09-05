@@ -3,10 +3,10 @@ export interface Authorization {
 }
 
 export interface User {
+  id: string
+  username: string
   firstName: string
   lastName: string
-  username: string
-  id: string
 }
 
 export interface UserCredentials {

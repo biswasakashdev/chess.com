@@ -24,7 +24,7 @@ func NewGameRouter(h *hub.Hub) chi.Router {
 		// Extract the path variable using chi.URLParam
 		roomId := chi.URLParam(r, "roomId")
 
-		game, err := h.GetGameDetails(roomId, userId)
+		game, err := h.GetGameDetails(ctx, roomId, userId)
 
 		if err != nil {
 			util.BuildErrResponseWithCode(w, err, http.StatusBadRequest)
@@ -34,7 +34,7 @@ func NewGameRouter(h *hub.Hub) chi.Router {
 
 	})
 
-	router.Post("/{roomId}", func(w http.ResponseWriter, r *http.Request) {
+	router.Delete("/{roomId}", func(w http.ResponseWriter, r *http.Request) {
 
 		ctx := r.Context()
 
@@ -58,6 +58,35 @@ func NewGameRouter(h *hub.Hub) chi.Router {
 		util.BuildResponseBodyWithCode(w, map[string]string{
 			"message": "Room deleted successfully",
 		}, http.StatusAccepted)
+
+	})
+
+	router.Get("/{roomId}/moves", func(w http.ResponseWriter, r *http.Request) {
+
+		ctx := r.Context()
+
+		userId, ok := ctx.Value(middleware.UserIDKey).(string)
+
+		if !ok || userId == "" {
+			util.BuildErrResponseWithCode(w, errors.New("Invalid authentication"), 400)
+		}
+		// Extract the path variable using chi.URLParam
+		roomId := chi.URLParam(r, "roomId")
+
+		queryParams := r.URL.Query()
+
+		piece := ""
+
+		if queryParams.Has("piece") {
+			piece = queryParams.Get("piece")
+		} else {
+			util.BuildErrResponse(w, errors.New("No piece found"))
+			return
+		}
+
+		availableMoveResp := h.GetAvailableMoves(roomId, userId, piece)
+
+		util.BuildResponseWithBody(w, availableMoveResp)
 
 	})
 

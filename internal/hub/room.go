@@ -2,8 +2,8 @@ package hub
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"sync"
 
 	"github.com/biswasakashdev/chess.com/internal/chess"
@@ -22,6 +22,7 @@ type GameRoom struct {
 	Game        chess.Chess
 	MoveChan    chan MoveAction
 	StopChan    chan string
+	Moves       []MoveAction
 	mu          sync.RWMutex
 }
 
@@ -33,6 +34,7 @@ func NewGameRoom(id string, white, black *Client) *GameRoom {
 		Game:        chess.NewGame(),
 		MoveChan:    make(chan MoveAction),
 		StopChan:    make(chan string),
+		Moves:       make([]MoveAction, 0),
 	}
 }
 
@@ -68,8 +70,9 @@ func (r *GameRoom) Run() {
 				continue
 			}
 
+			r.Moves = append(r.Moves, action)
+
 			// Return the state of the board
-			fen := r.Game.GetBoard()
 			outcome := r.Game.GetOutCome()
 			r.mu.Unlock()
 
@@ -84,18 +87,18 @@ func (r *GameRoom) Run() {
 				UserId: action.PlayerID,
 				Turn:   currTurn,
 				Move:   action.MoveUCI,
-				FEN:    fen,
 			})
 
 			// Check for game completion
 			if outcome != chess.NoOutCome {
 				payload := GameOverPayload{
+					GameId: r.ID,
 					Reason: "Win",
 				}
 				if outcome == chess.BlackWin {
-					payload.Reason = ""
+					payload.Reason = "Black wins"
 				} else {
-					payload.Reason = ""
+					payload.Reason = "White wins"
 				}
 				r.broadcast(EventGameOver, payload)
 				return
@@ -104,22 +107,39 @@ func (r *GameRoom) Run() {
 	}
 }
 
-func (r *GameRoom) GetRoomDetails() *dtos.GameDetails {
+type RoomDetails struct {
+	GameId      string
+	Board       string
+	Turn        chess.Turn
+	WhitePlayer string
+	BlackPlayer string
+	History     []MoveAction
+}
+
+func (r *GameRoom) GetRoomDetails() *RoomDetails {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	turn := dtos.GameTurnBlack
-	log.Println(r.Game.GetTurn())
-	if r.Game.GetTurn() == chess.TurnWhite {
-		turn = dtos.GameTurnWhite
-	}
-	return &dtos.GameDetails{
+	return &RoomDetails{
 		GameId:      r.ID,
 		WhitePlayer: r.WhitePlayer.UserID,
 		BlackPlayer: r.BlackPlayer.UserID,
-		Turn:        turn,
+		Turn:        r.Game.GetTurn(),
 		Board:       r.Game.GetBoard(),
+		History:     r.Moves,
 	}
 
+}
+
+func (r *GameRoom) GetAllAvailableMoves(userId, moveUCI string) (string, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	turn := r.Game.GetTurn()
+
+	if (turn == chess.TurnWhite && userId != r.WhitePlayer.UserID) ||
+		(turn == chess.TurnBlack && userId != r.BlackPlayer.UserID) {
+		return "", errors.New("Invalid user or gameId")
+	}
+	return r.Game.GetAvailableMoves(moveUCI), nil
 }
 
 func (r *GameRoom) broadcast(eventType EventType, payload any) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	mdls "github.com/biswasakashdev/chess.com/internal/models"
@@ -71,10 +72,10 @@ func (ur *SQLiteUserRepository) CreateUser(username, hashedPassword, firstName, 
 		CreatedAt:      time.Now(),
 	}
 	query := `
-        INSERT INTO users (id, username, hashed_password, first_name, last_name, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (id, username, hashed_password, first_name, last_name, rating ,created_at)
+        VALUES ($1, $2, $3, $4, $5, $6 ,$7)
     `
-	_, err := ur.db.Exec(query, user.Id, user.Username, user.HashedPassword, user.FirstName, user.LastName, user.CreatedAt)
+	_, err := ur.db.Exec(query, user.Id, user.Username, user.HashedPassword, user.FirstName, user.LastName, 0, user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -353,4 +354,46 @@ func (ur *SQLiteUserRepository) DeleteFriendship(ctx context.Context, userId, ta
 	}
 
 	return nil
+}
+
+func (ur *SQLiteUserRepository) FindAllUsersByList(ctx context.Context, userIdList []string) ([]*UserDTO, error) {
+
+	// 1. Handle empty slice to avoid SQL syntax errors
+	if len(userIdList) == 0 {
+		return []*UserDTO{}, nil
+	}
+
+	// 2. Create the exact number of placeholders: "?, ?, ?"
+	placeholders := make([]string, len(userIdList))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+
+	// 3. Construct the full query string
+	query := fmt.Sprintf("SELECT id, username, first_name, last_name, rating FROM users WHERE id IN (%s)", strings.Join(placeholders, ", "))
+
+	// 4. Convert []int to []any (or []interface{}) for db.Query
+	args := make([]any, len(userIdList))
+	for i, id := range userIdList {
+		args[i] = id
+	}
+
+	// 5. Execute the query
+	rows, err := ur.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// 6. Scan the results
+	var users []*UserDTO
+	for rows.Next() {
+		var u UserDTO
+		if err := rows.Scan(&u.Id, &u.Username, &u.FirstName, &u.LastName, &u.Rating); err != nil {
+			return nil, err
+		}
+		users = append(users, &u)
+	}
+
+	return users, rows.Err()
 }

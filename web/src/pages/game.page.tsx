@@ -1,17 +1,17 @@
 import { ChessBoard } from "@/components/game/chess-board"
 import { GameOverDialog } from "@/components/game/game-dialogue"
-import { type MoveRecord } from "@/components/game/sidebar"
+import { GameSidebar, type MoveRecord } from "@/components/game/sidebar"
 import useAuthContext from "@/context/auth.context"
 import {
-    useChessContext,
-    useSocketEvent,
-    type GameOverPayload,
-    type MoveMadePayload
+  useChessContext,
+  useSocketEvent,
+  type GameOverPayload,
+  type MoveMadePayload,
 } from "@/context/game.context"
 import useUserContext from "@/context/user.context"
 import type { User } from "@/types/user.types"
 import React, { useCallback, useEffect, useState } from "react"
-import { useParams } from "react-router"
+import { useNavigate, useParams } from "react-router"
 
 const INITIAL_BOARD = [
   ["r", "n", "b", "q", "k", "b", "n", "r"],
@@ -27,14 +27,13 @@ const INITIAL_BOARD = [
 export const GamePage: React.FC = () => {
   const { gameId } = useParams<{ gameId: string }>()
   const { sendMove } = useChessContext()
-  const {user}= useUserContext()
-
+  const { user } = useUserContext()
   const { client } = useAuthContext()
 
+  const navigate = useNavigate()
+
   const [board, setBoard] = useState<string[][]>(INITIAL_BOARD)
-  const [currentTurn, setCurrentTurn] = useState<"white" | "black">(
-    "white"
-  )
+  const [currentTurn, setCurrentTurn] = useState<"white" | "black">("white")
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null)
   const [availableMoves, setAvailableMoves] = useState<string[]>([])
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(
@@ -42,9 +41,17 @@ export const GamePage: React.FC = () => {
   )
   const [moveHistory, setMoveHistory] = useState<MoveRecord[]>([])
 
+  const [players, setPlayers] = useState<
+    | {
+        whitePlayer: User
+        blackPlayer: User
+      }
+    | undefined
+  >()
+
   const [gameOverData, setGameOverData] = useState<GameOverPayload | null>(null)
 
-  const [playerColor, setPlayerColor] = useState<"white"|"black">("white")
+  const [playerColor, setPlayerColor] = useState<"white" | "black">("white")
 
   // Parse the state of the board
   const parseBoardState = useCallback((rawBoard: string): string[][] => {
@@ -97,46 +104,85 @@ export const GamePage: React.FC = () => {
         white_player: User
         black_player: User
         turn: "white" | "black"
-        board: string
+        board: string,
+        history: {id:string,move: string}[]
       }>(`/api/v1/games/${gameId}`)
 
       if (status === 200) {
         const { board, turn, black_player, white_player } = data
         setCurrentTurn(turn)
         setBoard(parseBoardState(board))
-        const currPlayerCol = black_player.id === user.id? "black":"white"
+        const currPlayerCol = black_player.id === user.id ? "black" : "white"
         setPlayerColor(currPlayerCol)
+        console.log(white_player,black_player)
+        setPlayers({ whitePlayer: white_player, blackPlayer: black_player })
+        // setMoveHistory(history)
+        return
       }
+      navigate("/home")
+
     }
     fetchGameData()
-  },[client,gameId,parseBoardState, user])
+  }, [client, gameId, parseBoardState, user, navigate])
+
+  const applyMoveToLocalBoard = useCallback((from: string, to: string) => {
+    const fromR = 8 - parseInt(from[1], 10)
+    const fromC = from.charCodeAt(0) - 97
+    const toR = 8 - parseInt(to[1], 10)
+    const toC = to.charCodeAt(0) - 97
+
+    setBoard((prev) => {
+      const next = prev.map((row) => [...row])
+      const piece = next[fromR][fromC]
+      next[toR][toC] = piece
+      next[fromR][fromC] = "."
+      return next
+    })
+  }, [])
+
+  const fetchAvailableMoves = useCallback(
+    async (piece: string): Promise<string[]> => {
+      const { status, data } = await client.get<{ moves: string }>(
+        `/api/v1/games/${gameId}/moves`,
+        {
+          params: {
+            piece: piece,
+          },
+        }
+      )
+
+      if (status === 200) {
+        return data.moves.split(" ")
+      }
+      return []
+    },
+    [client, gameId]
+  )
 
   // 1. Listen for move confirmations from server
   useSocketEvent("move_made", (data: MoveMadePayload) => {
-
-    // const from = data.move.substring(0, 2)
-    // const to = data.move.substring(2, 4)
-    // setLastMove({ from, to })
+    const from = data.move.substring(0, 2)
+    const to = data.move.substring(2, 4)
+    setLastMove({ from, to })
+    applyMoveToLocalBoard(from, to)
 
     // Update move records
-    // setMoveHistory((prev) => {
-    //   const isWhiteMove = currentTurn === "White"
-    //   if (isWhiteMove) {
-    //     return [...prev, { turnNumber: prev.length + 1, white: data.move }]
-    //   }
-    //   const updated = [...prev]
-    //   if (updated.length > 0) {
-    //     updated[updated.length - 1].black = data.move
-    //   }
-    //   return updated
-    // })
+    setMoveHistory((prev) => {
+      const isWhiteMove = currentTurn === "white"
+      if (isWhiteMove) {
+        return [...prev, { turnNumber: prev.length + 1, white: data.move }]
+      }
+      const updated = [...prev]
+      if (updated.length > 0) {
+        updated[updated.length - 1].black = data.move
+      }
+      return updated
+    })
 
     // Toggle turn
     setCurrentTurn(data.turn)
     setSelectedSquare(null)
     setAvailableMoves([])
-    const newBoard = parseBoardState(data.fen)
-    setBoard(newBoard)
   })
 
   // 2. Listen for game over
@@ -146,24 +192,9 @@ export const GamePage: React.FC = () => {
     }
   })
 
-  // const applyMoveToLocalBoard = (from: string, to: string) => {
-  //   const fromR = 8 - parseInt(from[1], 10);
-  //   const fromC = from.charCodeAt(0) - 97;
-  //   const toR = 8 - parseInt(to[1], 10);
-  //   const toC = to.charCodeAt(0) - 97;
-
-  //   setBoard((prev) => {
-  //     const next = prev.map((row) => [...row]);
-  //     const piece = next[fromR][fromC];
-  //     next[toR][toC] = piece;
-  //     next[fromR][fromC] = ".";
-  //     return next;
-  //   });
-  // };
-
   // Parse FEN or execute local board update
 
-  const handleSquareClick = (square: string) => {
+  const handleSquareClick = async (square: string) => {
     if (currentTurn !== playerColor || !gameId) return
 
     // Move to clicked destination
@@ -191,6 +222,7 @@ export const GamePage: React.FC = () => {
       (playerColor === "black" && !isWhitePiece)
     ) {
       setSelectedSquare(square)
+      setAvailableMoves(await fetchAvailableMoves(square))
     }
   }
 
@@ -199,6 +231,10 @@ export const GamePage: React.FC = () => {
       // Dispatch resign event
       //
     }
+  }
+
+  if (!players) {
+    return "Loading....."
   }
 
   return (
@@ -218,15 +254,15 @@ export const GamePage: React.FC = () => {
 
       {/* Move History & Match Details */}
       <div className="h-[620px] w-full max-w-sm">
-        {/*<GameSidebar
+        <GameSidebar
           gameId={gameId || ""}
-          whitePlayer={whitePlayer}
-          blackPlayer={blackPlayer}
+          whitePlayer={players.whitePlayer}
+          blackPlayer={players.blackPlayer}
           playerColor={playerColor}
           currentTurn={currentTurn}
           moves={moveHistory}
           onResign={handleResign}
-        />*/}
+        />
       </div>
 
       {/* Game Over Popup */}

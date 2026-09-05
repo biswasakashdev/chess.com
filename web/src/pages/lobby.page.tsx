@@ -27,6 +27,7 @@ export const LobbyPage = () => {
 
   useSocketEvent("game_start", (payload: GameStartPayload) => {
     const gameId = payload.game_id
+    toast.dismiss()
     navigate(`/home/${gameId}`)
   })
 
@@ -44,6 +45,7 @@ export const LobbyPage = () => {
           </div>
         </div>,
         {
+          duration:15000,
           action: (
             <Button
               variant="ghost"

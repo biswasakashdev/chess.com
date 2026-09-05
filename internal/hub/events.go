@@ -15,17 +15,15 @@ const (
 	EventMakeMove        EventType = "make_move"
 	EventChallengeReq    EventType = "challenge_request"
 	EventChallengeAccept EventType = "challenge_accept"
-	EventSelectPiece     EventType = "select_piece"
 
 	// Sever Events
 
-	EventMoveMade       EventType = "move_made"
-	EventGameStart      EventType = "game_start"
-	EventPresence       EventType = "presence"
-	EventPlayerStatus   EventType = "player_status"
-	EventGameOver       EventType = "game_over"
-	EventAvailableMoves EventType = "available_moves"
-	EventError          EventType = "error"
+	EventMoveMade     EventType = "move_made"
+	EventGameStart    EventType = "game_start"
+	EventPresence     EventType = "presence"
+	EventPlayerStatus EventType = "player_status"
+	EventGameOver     EventType = "game_over"
+	EventError        EventType = "error"
 )
 
 // Event
@@ -70,20 +68,16 @@ type MoveMadePayload struct {
 	UserId string        `json:"id"`
 	Turn   dtos.GameTurn `json:"turn"`
 	Move   string        `json:"move"`
-	FEN    string        `json:"fen"`
 }
 
 type GameOverPayload struct {
+	GameId string `json:"id"`
 	Result string `json:"result"`
 	Reason string `json:"reason"`
 }
 
 type ErrorPayload struct {
 	Message string `json:"message"`
-}
-
-type AvailableMovesPayload struct {
-	Moves []string `json:"moves"`
 }
 
 type PresenceType string

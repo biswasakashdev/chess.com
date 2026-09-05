@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/biswasakashdev/chess.com/internal/chess"
 	"github.com/biswasakashdev/chess.com/internal/dtos"
 	usersRepo "github.com/biswasakashdev/chess.com/internal/repository/users"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
@@ -87,11 +88,12 @@ func (h *Hub) GetActiveClients() map[string]struct{} {
 }
 
 var (
-	ErrorInvalidRoomDetails error = errors.New("Invalid game room")
-	ErrorInvalidUserDetails error = errors.New("Invalid user id")
+	ErrorInvalidRoomDetails       error = errors.New("Invalid game room")
+	ErrorInvalidUserDetails       error = errors.New("Invalid user id")
+	ErrorFailedToFetchUserDetails error = errors.New("Failed to fetch the userdetails")
 )
 
-func (h *Hub) GetGameDetails(roomId, userId string) (*dtos.GameDetails, error) {
+func (h *Hub) GetGameDetails(ctx context.Context, roomId, userId string) (*dtos.GameDetails, error) {
 	h.mu.RLock()
 	val, ok := h.rooms[roomId]
 	h.mu.RUnlock()
@@ -99,10 +101,67 @@ func (h *Hub) GetGameDetails(roomId, userId string) (*dtos.GameDetails, error) {
 	if !ok {
 		return nil, ErrorInvalidRoomDetails
 	}
-	if val.WhitePlayer.UserID == userId || val.BlackPlayer.UserID == userId {
-		return val.GetRoomDetails(), nil
+	if val.WhitePlayer.UserID != userId && val.BlackPlayer.UserID != userId {
+		return nil, ErrorInvalidRoomDetails
 	}
-	return nil, ErrorInvalidRoomDetails
+
+	roomDetails := val.GetRoomDetails()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
+	defer cancel()
+	userList, err := h.userRepo.FindAllUsersByList(ctx, []string{roomDetails.WhitePlayer, roomDetails.BlackPlayer})
+
+	if err != nil || len(userList) != 2 {
+		return nil, ErrorFailedToFetchUserDetails
+	}
+
+	var whitePlayer usersRepo.UserDTO
+	var blackPlayer usersRepo.UserDTO
+
+	if userList[0].Id == roomDetails.WhitePlayer {
+		whitePlayer = *userList[0]
+		blackPlayer = *userList[1]
+	} else {
+		blackPlayer = *userList[0]
+		whitePlayer = *userList[1]
+	}
+
+	var currTurn dtos.GameTurn
+
+	if roomDetails.Turn == chess.TurnWhite {
+		currTurn = dtos.GameTurnWhite
+	} else {
+		currTurn = dtos.GameTurnBlack
+	}
+
+	movesHistory := make([]dtos.GameMove, 0, len(roomDetails.History))
+
+	for i, val := range roomDetails.History {
+		movesHistory[i] = dtos.GameMove{
+			UserId: val.PlayerID,
+			Move:   val.MoveUCI,
+		}
+	}
+
+	return &dtos.GameDetails{
+		GameId: roomDetails.GameId,
+		Turn:   currTurn,
+		Board:  roomDetails.Board,
+		WhitePlayer: dtos.UserResp{
+			Id:        whitePlayer.Id,
+			FirstName: whitePlayer.FirstName,
+			LastName:  whitePlayer.LastName,
+			Username:  whitePlayer.Username,
+		},
+		BlackPlayer: dtos.UserResp{
+			Id:        blackPlayer.Id,
+			FirstName: blackPlayer.FirstName,
+			LastName:  blackPlayer.LastName,
+			Username:  blackPlayer.Username,
+		},
+		History: movesHistory,
+	}, nil
+
 }
 
 func (h *Hub) DeleteRoom(roomId, userId string) error {
@@ -125,10 +184,6 @@ func (h *Hub) DeleteRoom(roomId, userId string) error {
 	val.StopChan <- username
 	delete(h.rooms, roomId)
 	return nil
-}
-
-func (h *Hub) SendFriendNotification() {
-
 }
 
 func (h *Hub) broadcastPresence(userId string, presenseTypeRegister bool) {
@@ -242,12 +297,6 @@ func (h *Hub) RouteEvent(client *Client, event Event) {
 			return
 		}
 		h.handleMove(client.UserID, payload)
-	case EventSelectPiece:
-		var payload SelectPiecePayload
-		if err := json.Unmarshal(event.Payload, &payload); err != nil {
-			client.SendError("Bad payload")
-		}
-		h.handleSelectPiece(payload)
 	}
 
 }
@@ -325,8 +374,24 @@ func (h *Hub) handleMove(playerID string, payload MakeMovePayload) {
 	}
 }
 
-func (h *Hub) handleSelectPiece(payload SelectPiecePayload) {
+func (h *Hub) GetAvailableMoves(roomId, userId, piece string) *dtos.AvailableMovesResp {
+	h.mu.RLock()
+	val, ok := h.rooms[roomId]
+	h.mu.RUnlock()
 
+	if !ok {
+		return &dtos.AvailableMovesResp{}
+	}
+
+	availableMoves, err := val.GetAllAvailableMoves(userId, piece)
+
+	if err != nil {
+		return &dtos.AvailableMovesResp{}
+	}
+
+	return &dtos.AvailableMovesResp{
+		Moves: availableMoves,
+	}
 }
 
 func (h *Hub) sendErrorTo(userID, message string) {

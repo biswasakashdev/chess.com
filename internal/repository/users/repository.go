@@ -29,4 +29,6 @@ type UserRepository interface {
 	FindFriendsByUserId(ctx context.Context, userId string) ([]*UserDTO, error)
 
 	FindByUsernameNotFriendsWith(ctx context.Context, userId, username string) ([]*UserDTO, error)
+
+	FindAllUsersByList(ctx context.Context, userIdList []string) ([]*UserDTO, error)
 }

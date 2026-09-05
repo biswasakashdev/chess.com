@@ -15,6 +15,7 @@ import (
 	handlers "github.com/biswasakashdev/chess.com/internal/routers"
 	"github.com/biswasakashdev/chess.com/internal/service"
 	"github.com/biswasakashdev/chess.com/internal/ticket"
+	"github.com/biswasakashdev/chess.com/web"
 	"github.com/go-chi/chi/v5"
 	chiMiddle "github.com/go-chi/chi/v5/middleware"
 )
@@ -82,6 +83,8 @@ func main() {
 
 	// Ws Server
 	router.HandleFunc("/api/ws", gameHub.WsHandle)
+
+	router.HandleFunc("/", web.SpaHandler())
 
 	fmt.Printf("%s Server listening on %s port.", config.AppName, config.Port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", config.Port), router))

@@ -12,6 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Flag, Swords } from "lucide-react";
+import type { User } from "@/types/user.types";
+import { getCapitalise, getInitials } from "@/utils/user-utils";
 
 export interface MoveRecord {
   turnNumber: number;
@@ -21,8 +23,8 @@ export interface MoveRecord {
 
 interface GameSidebarProps {
   gameId: string;
-  whitePlayer: string;
-  blackPlayer: string;
+  whitePlayer: User;
+  blackPlayer: User;
   playerColor: "white" | "black";
   currentTurn: "white" | "black";
   moves: MoveRecord[];
@@ -58,21 +60,24 @@ export const GameSidebar: React.FC<GameSidebarProps> = ({
           <div className="flex items-center justify-between rounded-md p-2 bg-muted/40">
             <div className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-xs bg-black text-white font-bold">B</AvatarFallback>
+                <AvatarFallback className="text-xs bg-black text-white font-bold">{ getInitials(blackPlayer.firstName, blackPlayer.lastName)}</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">{blackPlayer}</span>
+              <span className="text-sm font-medium">{getCapitalise(blackPlayer.firstName,blackPlayer.lastName)}</span>
+              <span className="text-sm font-medium"> •@{blackPlayer.username}</span>
             </div>
-            {currentTurn === "Black" && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
+            {currentTurn === "black" && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
 
           <div className="flex items-center justify-between rounded-md p-2 bg-muted/40">
             <div className="flex items-center gap-2">
               <Avatar className="h-7 w-7">
-                <AvatarFallback className="text-xs bg-white text-black border border-border font-bold">W</AvatarFallback>
+                <AvatarFallback className="text-xs bg-white text-black border border-border font-bold">{ getInitials(whitePlayer.firstName,whitePlayer.lastName)}</AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">{whitePlayer}</span>
+
+              <span className="text-sm font-medium">{getCapitalise(whitePlayer.firstName,whitePlayer.lastName)}</span>
+              <span className="text-sm font-medium"> •@{whitePlayer.username}</span>
             </div>
-            {currentTurn === "White" && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
+            {currentTurn === "white" && <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />}
           </div>
         </div>
       </CardHeader>

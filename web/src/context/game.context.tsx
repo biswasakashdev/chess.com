@@ -40,9 +40,8 @@ export interface MakeMovePayload {
 
 export interface MoveMadePayload {
   id: string
-  move: string
   turn: "white" | "black"
-  fen: string
+  move: string
 }
 
 export interface GameOverPayload {

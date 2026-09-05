@@ -92,10 +92,6 @@ export const AuthPage = () => {
         </Card>
       </main>
 
-      {/* 3. Footer */}
-      <footer className="w-full border-t bg-background py-4 text-center font-mono text-[10px] text-muted-foreground">
-        Instance access logs are bound by token security handshakes.
-      </footer>
     </div>
   )
 }
